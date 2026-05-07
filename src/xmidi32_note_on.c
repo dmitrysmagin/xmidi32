@@ -33,7 +33,7 @@ uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
     if (slot == MAX_NOTES) {
         slot = 0;
     } else {
-        st->note_count++;
+        xm32_atomic_inc16(&st->note_count);
     }
 
     uint32_t phys_chan = st->chan_map[chan];

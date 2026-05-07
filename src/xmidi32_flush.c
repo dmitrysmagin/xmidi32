@@ -20,7 +20,7 @@ static void flush_seq_channel(struct sequence_state *st, uint32_t chan) {
         flushed++;
     }
 
-    st->note_count = 0;
+    xm32_atomic_store16(&st->note_count, 0);
 }
 
 void flush_note_queue(struct sequence_state *st) {
@@ -37,7 +37,7 @@ void flush_note_queue(struct sequence_state *st) {
         }
         xmidi32_send_note_off(phys_chan, note, 0);
     }
-    st->note_count = 0;
+    xm32_atomic_store16(&st->note_count, 0);
 }
 
 void flush_channel_notes(uint32_t chan) {

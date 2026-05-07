@@ -78,4 +78,43 @@ static inline void xm32_leave(uint32_t volatile *service_active) {
     xm32_atomic_add(service_active, (uint32_t)-1);
 }
 
+static inline uint16_t xm32_atomic_add16(volatile uint16_t *addr, int16_t delta) {
+#if defined(__GNUC__) || defined(__clang__)
+    uint16_t result;
+    __asm__ __volatile__(
+        "lock; xadd %0, %1"
+        : "=r"(result), "+m"(*addr)
+        : "0"((uint16_t)delta)
+        : "memory", "cc");
+    return result;
+#elif defined(_MSC_VER)
+    return (uint16_t)_InterlockedExchangeAdd16((volatile short *)addr, delta) + delta;
+#else
+    uint16_t old;
+    do { old = *addr; } while (xm32_atomic_cas((volatile uint32_t *)addr, old, old + delta) != old);
+    return old;
+#endif
+}
+
+static inline uint16_t xm32_atomic_inc16(volatile uint16_t *addr) {
+    return xm32_atomic_add16(addr, 1);
+}
+
+static inline uint16_t xm32_atomic_dec16(volatile uint16_t *addr) {
+    return xm32_atomic_add16(addr, -1);
+}
+
+static inline void xm32_atomic_store16(volatile uint16_t *addr, uint16_t val) {
+#if defined(__GNUC__) || defined(__clang__)
+    __asm__ __volatile__(
+        "mov %0, %%ax\n\t"
+        "lock; xchg %%ax, %1"
+        : : "r"((uint16_t)val), "m"(*addr) : "ax", "memory");
+#elif defined(_MSC_VER)
+    _InterlockedExchange16((volatile short *)addr, (short)val);
+#else
+    xm32_atomic_cas((volatile uint32_t *)addr, 0xFFFF, val);
+#endif
+}
+
 #endif
