@@ -27,8 +27,51 @@ void xmidi32_define_timbre_cache(HDRIVER h, void *addr, uint32_t size) {
 
 uint32_t xmidi32_timbre_request(HDRIVER h, HSEQUENCE seq) {
     (void)h;
-    (void)seq;
-    return 0;
+
+    if (seq == (HSEQUENCE)-1) return 0xFFFFFFFFU;
+
+    if ((uint32_t)seq >= (uint32_t)NSEQS) return 0xFFFFFFFFU;
+
+    struct sequence_state *st = sequence_states[seq];
+    if (st == NULL) return 0xFFFFFFFFU;
+
+    const uint8_t *timb = st->TIMB;
+    if (timb == NULL) return 0xFFFFFFFFU;
+
+    if (timb[0] != 'B' || timb[1] != 'M' ||
+        timb[2] != 'I' || timb[3] != 'T') {
+        return 0xFFFFFFFFU;
+    }
+
+    uint32_t chunk_len = ((uint32_t)timb[4] << 24) |
+                          ((uint32_t)timb[5] << 16) |
+                          ((uint32_t)timb[6] <<  8) |
+                          (uint32_t)timb[7];
+
+    if (chunk_len < 2) return 0xFFFFFFFFU;
+
+    uint32_t offset = 8;
+    uint32_t count = ((uint32_t)timb[offset] << 8) | (uint32_t)timb[offset + 1];
+    offset += 2;
+
+    if (count == 0) return 0xFFFFFFFFU;
+
+    uint32_t i;
+    for (i = 0; i < count; i++) {
+        if (offset + 1 >= chunk_len) break;
+
+        uint32_t patch = (uint32_t)timb[offset];
+        uint32_t bank  = (uint32_t)timb[offset + 1];
+        uint32_t gnum  = (bank << 8) | patch;
+
+        if (yamaha_timbre_status(bank, patch) == 0) {
+            return gnum;
+        }
+
+        offset += 2;
+    }
+
+    return 0xFFFFFFFFU;
 }
 
 void xmidi32_install_timbre(HDRIVER h, uint32_t bank, uint32_t patch,
