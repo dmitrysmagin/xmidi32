@@ -140,6 +140,10 @@ void xmidi32_send_sysex(const uint8_t *data, uint32_t size);
 void xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
                           uint32_t ctrl, uint32_t val);
 void xmidi32_XMIDI_volume(struct sequence_state *st);
+uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st);
+uint32_t xmidi32_XMIDI_meta(struct sequence_state *st);
+void xmidi32_XMIDI_sysex(const uint8_t *data, uint32_t size, uint32_t type);
+void xmidi32_release_seq(HSEQUENCE sequence);
 
 
 void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,

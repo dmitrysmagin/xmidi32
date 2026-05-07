@@ -1,8 +1,7 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_reset.h"
 
-extern void xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
-                                 uint32_t ctrl, uint32_t val);
+#define CTRL_VAL(st, ctrl, ch) (((uint8_t *)(&(st)->chan_controls))[(ctrl) * NUM_CHANS + (ch)])
 
 void reset_sequence(struct sequence_state *st) {
     uint32_t i;
@@ -45,14 +44,10 @@ void restore_sequence(struct sequence_state *st) {
     for (i = 0; i < 9; i++) {
         uint8_t ctrl = logged_ctrls[i];
         if (ctrl == CHAN_LOCK) continue;
-        uint8_t hash = ctrl_hash[ctrl];
-        if (hash == 0xFF) continue;
-
         uint32_t j;
         for (j = 0; j < NUM_CHANS; j++) {
-            uint8_t val = st->chan_controls.PV[j];
+            uint8_t val = CTRL_VAL(st, i, j);
             if (val == 0xFF) continue;
-            if (hash >= NUM_CHANS * 9) continue;
             xmidi32_XMIDI_control(st, j, ctrl, val);
         }
     }
