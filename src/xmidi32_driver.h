@@ -145,6 +145,12 @@ uint32_t xmidi32_XMIDI_meta(struct sequence_state *st);
 void xmidi32_XMIDI_sysex(const uint8_t *data, uint32_t size, uint32_t type);
 void xmidi32_release_seq(HSEQUENCE sequence);
 
+uint32_t xmidi32_get_beat_count(HSEQUENCE sequence);
+uint32_t xmidi32_get_bar_count(HSEQUENCE sequence);
+
+void xmidi32_map_seq_channel(HSEQUENCE sequence, uint32_t seq_chan, uint32_t phys_chan);
+uint32_t xmidi32_true_seq_channel(HSEQUENCE sequence, uint32_t seq_chan);
+void xmidi32_branch_index(HSEQUENCE sequence, uint32_t marker);
 
 void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
                           uint32_t DMA, uint32_t DRQ);
