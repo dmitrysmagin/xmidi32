@@ -1,26 +1,26 @@
 #include "xmidi32_driver.h"
 
-#define GCTL(chan, ctrl_idx) (((uint8_t *)&global_controls)[(ctrl_idx) * NUM_CHANS + (chan)])
-
 uint32_t xmidi32_lock_channel(void) {
     int32_t best = -1;
+    uint8_t best_notes = 0;
     uint8_t mask = 0xC0;
 
     for (;;) {
         int32_t cand = -1;
         uint8_t cand_notes = 0;
-        uint32_t i;
+        int32_t i;
 
-        for (i = MIN_TRUE_CHAN - 1; i < MAX_TRUE_CHAN; i++) {
+        for (i = (int32_t)MAX_TRUE_CHAN - 1; i >= (int32_t)(MIN_TRUE_CHAN - 1); i--) {
             if ((lock_status[i] & mask) != 0) continue;
-            if (cand == -1 || active_notes[i] < cand_notes) {
-                cand = (int32_t)i;
+            if (cand == -1 || active_notes[i] >= cand_notes) {
+                cand = i;
                 cand_notes = active_notes[i];
             }
         }
 
         if (cand != -1) {
             best = cand;
+            best_notes = cand_notes;
             break;
         }
 

@@ -1,5 +1,4 @@
 #include "xmidi32_driver.h"
-#include "xmidi32_reset.h"
 
 uint32_t xmidi32_XMIDI_meta(struct sequence_state *st) {
     const uint8_t *p = st->EVNT_ptr;
@@ -11,7 +10,6 @@ uint32_t xmidi32_XMIDI_meta(struct sequence_state *st) {
 
     uint32_t header_len = (uint32_t)(vln_ptr - data_start);
     uint32_t total_len = header_len + data_len;
-    const uint8_t *event_end = p + 2 + total_len;
 
     if (meta_type == 0x2F) {
         reset_sequence(st);
@@ -25,19 +23,15 @@ uint32_t xmidi32_XMIDI_meta(struct sequence_state *st) {
     if (meta_type == 0x58) {
         st->time_numerator = p[3];
 
-        uint8_t denom_exp = p[4];
-        if (denom_exp >= 2) {
-            denom_exp = (uint8_t)(denom_exp - 2);
+        uint8_t denom_byte = p[4];
+        uint8_t denom_exp;
+        if (denom_byte >= 2) {
+            denom_exp = denom_byte - 2;
         } else {
-            denom_exp = (uint8_t)(2 - denom_exp);
+            denom_exp = 2 - denom_byte;
         }
 
-        uint32_t base = QUANT_TIME_16;
-        if (denom_exp < 32) {
-            base = QUANT_TIME_16 >> denom_exp;
-        } else {
-            base = QUANT_TIME_16 << (denom_exp - 31);
-        }
+        uint32_t base = QUANT_TIME_16 >> denom_exp;
         if (base == 0) base = 1;
 
         st->time_fraction = (int32_t)base;
@@ -50,8 +44,10 @@ uint32_t xmidi32_XMIDI_meta(struct sequence_state *st) {
 
     if (meta_type == 0x51) {
         if (data_len >= 3) {
-            uint32_t tempo = ((uint32_t)p[3] << 16) | ((uint32_t)p[4] << 8) | (uint32_t)p[5];
-            tempo <<= 4;
+            uint32_t tempo = ((uint32_t)p[3] << 16) |
+                             ((uint32_t)p[4] << 8)  |
+                             (uint32_t)p[5];
+            tempo = (tempo << 4) & 0x0FFFFFF0U;
             st->time_per_beat = tempo;
         }
         return total_len;

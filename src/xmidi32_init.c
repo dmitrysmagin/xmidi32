@@ -1,14 +1,5 @@
 #include "xmidi32_driver.h"
 
-struct driver_entry {
-    uint32_t service;
-    void *address;
-};
-
-static void send_default_controllers(uint32_t chan);
-
-#define GCTL(ch, idx) (((uint8_t *)&global_controls)[(idx) * NUM_CHANS + (ch)])
-
 static void send_default_controllers(uint32_t chan) {
     uint32_t i;
     for (i = 0; i < 9; i++) {
