@@ -310,6 +310,105 @@ static void delete_LRU(void) {
     }
 }
 
+uint32_t yamaha_get_note_event(void) { return note_event_ctr; }
+void yamaha_set_note_event(uint32_t ctr) { note_event_ctr = ctr; }
+
+void yamaha_define_cache(void *addr, uint32_t size) {
+    cache_base = (uint32_t)(uintptr_t)addr;
+    cache_size = size;
+    cache_end = 0;
+}
+
+uint32_t yamaha_get_cache_size(void) { return cache_size; }
+
+static uint32_t index_timbre(uint16_t gnum);
+static void delete_LRU(void);
+
+static uint32_t do_install_timbre(uint16_t gnum, const void *data) {
+    uint8_t num = (uint8_t)(gnum & 0xFF);
+    uint8_t bank = (uint8_t)((gnum >> 8) & 0xFF);
+
+    uint32_t idx = index_timbre(gnum);
+    if (idx != 0xFFFFFFFF) {
+        if (data != NULL) {
+            int32_t slot = -1;
+            int32_t i;
+            for (i = 0; i < (int32_t)MAX_TIMBS; i++) {
+                if (!(timb_attribs[i] & 0x80)) { slot = i; break; }
+            }
+            if (slot >= 0) {
+                int32_t ch;
+                for (ch = 0; ch < (int32_t)NUM_CHANS_MAX; ch++) {
+                    if (MIDI_program[ch] == num && MIDI_bank[ch] == bank) {
+                        MIDI_timbre[ch] = (int8_t)slot;
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    if (data == NULL) return;
+
+    const struct BNK_timbre *src = (const struct BNK_timbre *)data;
+    uint16_t tsize = src->B_length;
+
+    while ((cache_end + tsize) > cache_size) delete_LRU();
+
+    uint8_t slot = 0xFF;
+    int32_t i;
+    for (i = 0; i < (int32_t)MAX_TIMBS; i++) {
+        if (!(timb_attribs[i] & 0x80)) { slot = (uint8_t)i; break; }
+    }
+    if (slot == 0xFF) { delete_LRU(); slot = 0; }
+
+    uint32_t off = cache_end;
+    uint8_t *dst = (uint8_t *)(cache_base + off);
+    uint32_t k;
+    for (k = 0; k < tsize; k++) dst[k] = ((const uint8_t *)data)[k];
+
+    timb_num[slot] = num;
+    timb_bank[slot] = bank;
+    timb_attribs[slot] = 0x80;
+    note_event_ctr++;
+    timb_hist[slot] = note_event_ctr;
+    timb_offsets[slot] = off;
+    cache_end += tsize;
+
+    int32_t ch;
+    for (ch = 0; ch < (int32_t)NUM_CHANS_MAX; ch++) {
+        if (MIDI_program[ch] == num && MIDI_bank[ch] == bank) {
+            MIDI_timbre[ch] = (int8_t)slot;
+        }
+    }
+}
+
+void yamaha_install_timbre(uint32_t bank, uint32_t patch, const void *data) {
+    uint16_t gnum = (uint16_t)((bank << 8) | patch);
+    do_install_timbre(gnum, data);
+}
+
+void yamaha_protect_timbre(uint32_t bank, uint32_t patch) {
+    uint16_t gnum = (uint16_t)((bank << 8) | patch);
+    uint32_t idx = index_timbre(gnum);
+    if (idx == 0xFFFFFFFF) return;
+    timb_attribs[idx] |= 0x40;
+}
+
+void yamaha_unprotect_timbre(uint32_t bank, uint32_t patch) {
+    uint16_t gnum = (uint16_t)((bank << 8) | patch);
+    uint32_t idx = index_timbre(gnum);
+    if (idx == 0xFFFFFFFF) return;
+    timb_attribs[idx] &= 0xBF;
+}
+
+int32_t yamaha_timbre_status(uint32_t bank, uint32_t patch) {
+    uint16_t gnum = (uint16_t)((bank << 8) | patch);
+    uint32_t idx = index_timbre(gnum);
+    if (idx == 0xFFFFFFFF) return 0;
+    return (int32_t)(timb_offsets[idx] + 1);
+}
+
 static void release_voice(int32_t slot);
 static void update_voice(int32_t slot);
 

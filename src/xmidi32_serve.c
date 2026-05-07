@@ -1,7 +1,6 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_reset.h"
 #include "xmidi32_critical.h"
-#include "xmidi32_critical.h"
 
 void xmidi32_serve_driver(void) {
     if (!xm32_try_enter(&service_active)) return;
@@ -170,10 +169,10 @@ check_beat:
             int32_t tempo_grad = st->tempo_accum + (QUANT_TIME / 100);
             int32_t steps = 0;
             int32_t tempo_rem = tempo_grad;
-            while (tempo_rem > 0) {
-                steps++;
-                tempo_rem -= st->tempo_period;
-            }
+        while (tempo_rem >= st->tempo_percent) {
+            steps++;
+            tempo_rem -= st->tempo_period;
+        }
             if (steps != 0) {
                 st->tempo_accum = tempo_grad;
                 int32_t new_tempo = st->tempo_percent;

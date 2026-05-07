@@ -126,4 +126,41 @@ void xmidi32_write_display(const char *s) {
     (void)s;
 }
 
+#pragma pack(push, 1)
+struct xm32_DDT {
+    uint32_t min_API_version;
+    uint32_t drvr_type;
+    char     data_suffix[4];
+    void    *dev_name_table;
+    int32_t  default_IO;
+    int32_t  default_IRQ;
+    int32_t  default_DMA;
+    int32_t  default_DRQ;
+    int32_t  service_rate;
+    uint32_t display_size;
+};
+#pragma pack(pop)
+
+static const char *device_names[] = {
+    "Yamaha OPL2/OPL3 FM Sound",
+    NULL
+};
+
+void xmidi32_describe_driver(void *desc) {
+    struct xm32_DDT *d = (struct xm32_DDT *)desc;
+    d->min_API_version = 200;
+    d->drvr_type = 3;
+    d->data_suffix[0] = 'A';
+    d->data_suffix[1] = 'D';
+    d->data_suffix[2] = 0;
+    d->data_suffix[3] = 0;
+    d->dev_name_table = (void*)device_names;
+    d->default_IO = 0x388;
+    d->default_IRQ = -1;
+    d->default_DMA = -1;
+    d->default_DRQ = -1;
+    d->service_rate = QUANT_RATE;
+    d->display_size = 0;
+}
+
 
