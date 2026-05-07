@@ -3,6 +3,7 @@
 
 #include "xmidi32_config.h"
 #include "xmidi32_types.h"
+#include "xmidi32_backend.h"
 
 typedef int32_t HTIMER;
 typedef int32_t HDRIVER;

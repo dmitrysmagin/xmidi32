@@ -204,5 +204,6 @@ check_beat:
     }
 
 done_synth:
+    serve_synth();
     service_active = 0;
 }

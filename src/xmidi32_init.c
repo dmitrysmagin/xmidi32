@@ -1,4 +1,5 @@
 #include "xmidi32_driver.h"
+#include "xmidi32_backend.h"
 
 static void send_default_controllers(uint32_t chan) {
     uint32_t i;
@@ -14,10 +15,6 @@ static void send_default_controllers(uint32_t chan) {
 void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
                           uint32_t DMA, uint32_t DRQ) {
     (void)h;
-    (void)IO_ADDR;
-    (void)IRQ;
-    (void)DMA;
-    (void)DRQ;
 
     service_active = 0;
     sequence_count = 0;
@@ -41,9 +38,19 @@ void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
         ctrl_hash[logged_ctrls[i]] = (uint8_t)i;
     }
 
+    set_IO_parms(IO_ADDR, IRQ, DMA, DRQ);
+    reset_interface();
+    init_interface();
+    reset_synth();
+    init_synth();
+
+    xmidi32_cancel_callback();
+
     for (i = MIN_TRUE_CHAN - 1; i < (uint32_t)(MAX_REC_CHAN - 1); i++) {
         send_default_controllers(i);
     }
+
+    sysex_wait(10);
 
     for (i = MIN_TRUE_CHAN - 1; i < (uint32_t)(MAX_REC_CHAN - 1); i++) {
         global_pitch_l[i] = DEF_PITCH_L;
@@ -58,7 +65,7 @@ void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
         }
     }
 
-    xmidi32_cancel_callback();
+    sysex_wait(10);
 
     init_OK = 1;
 }
@@ -72,6 +79,29 @@ void xmidi32_shutdown(void) {
         xmidi32_stop_seq((HSEQUENCE)i);
         xmidi32_release_seq((HSEQUENCE)i);
     }
+
+    init_OK = 0;
+}
+
+void xmidi32_shutdown_driver(HDRIVER h, const char *msg) {
+    (void)h;
+    if (init_OK == 0) return;
+
+    int32_t i;
+    for (i = 0; i < NSEQS; i++) {
+        if (sequence_states[i] == NULL) continue;
+        xmidi32_stop_seq((HSEQUENCE)i);
+        xmidi32_release_seq((HSEQUENCE)i);
+    }
+
+    reset_synth();
+
+    if (msg != NULL) {
+        xmidi32_write_display(msg);
+    }
+
+    reset_interface();
+    shutdown_synth();
 
     init_OK = 0;
 }
