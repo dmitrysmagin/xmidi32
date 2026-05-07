@@ -76,9 +76,16 @@ extern const uint8_t ctrl_default[9];
 extern const uint8_t prg_default[15];
 extern uint8_t ctrl_hash[256];
 
+void xmidi32_inc_sequence_count(void);
+void xmidi32_dec_sequence_count(void);
+
 void xmidi32_init_globals(void);
 void xmidi32_shutdown(void);
 uint32_t xmidi32_get_state_size(void);
+
+
+
+
 
 void xmidi32_install_callback(void *fn);
 void xmidi32_cancel_callback(void);

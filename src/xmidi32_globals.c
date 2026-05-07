@@ -14,6 +14,9 @@ struct sequence_state *sequence_states[NSEQS];
 int32_t sequence_count = 0;
 int32_t current_handle = 0;
 
+void xmidi32_inc_sequence_count(void) { sequence_count++; }
+void xmidi32_dec_sequence_count(void) { sequence_count--; }
+
 const uint8_t logged_ctrls[9] = {
     PART_VOLUME, MODULATION, PANPOT, EXPRESSION, SUSTAIN,
     PATCH_BANK_SEL,
