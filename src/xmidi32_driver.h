@@ -128,6 +128,20 @@ uint32_t xmidi32_lock_channel(void);
 void xmidi32_release_channel(uint32_t chan);
 
 void xmidi32_serve_driver(void);
+
+void xmidi32_send_note_off(uint32_t phys_chan, uint32_t note, uint32_t vel);
+void xmidi32_send_note_on(uint32_t phys_chan, uint32_t note, uint32_t vel);
+void xmidi32_send_controller(uint32_t phys_chan, uint32_t ctrl, uint32_t val);
+void xmidi32_send_program_change(uint32_t phys_chan, uint32_t program);
+void xmidi32_send_pitch_bend(uint32_t phys_chan, uint32_t pitch_l, uint32_t pitch_h);
+void xmidi32_send_raw_message(uint32_t status, uint32_t data_1, uint32_t data_2);
+void xmidi32_send_sysex(const uint8_t *data, uint32_t size);
+
+void xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
+                          uint32_t ctrl, uint32_t val);
+void xmidi32_XMIDI_volume(struct sequence_state *st);
+
+
 void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
                           uint32_t DMA, uint32_t DRQ);
 void xmidi32_describe_driver(void *desc);
