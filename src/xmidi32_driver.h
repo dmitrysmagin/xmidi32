@@ -76,16 +76,16 @@ extern const uint8_t ctrl_default[9];
 extern const uint8_t prg_default[15];
 extern uint8_t ctrl_hash[256];
 
+#define GCTL(ch, idx) (((uint8_t *)&global_controls)[(idx) * NUM_CHANS + (ch)])
+
+#define CTRL_LOG(st, ctrl_idx) (((uint8_t *)&(st)->chan_controls)[(ctrl_idx) * NUM_CHANS])
+
 void xmidi32_inc_sequence_count(void);
 void xmidi32_dec_sequence_count(void);
 
 void xmidi32_init_globals(void);
 void xmidi32_shutdown(void);
 uint32_t xmidi32_get_state_size(void);
-
-
-
-
 
 void xmidi32_install_callback(void *fn);
 void xmidi32_cancel_callback(void);
@@ -121,7 +121,7 @@ uint32_t xmidi32_get_bar_count(HSEQUENCE sequence);
 
 void xmidi32_send_channel_voice_message(uint32_t status, uint32_t data_1, uint32_t data_2);
 void xmidi32_send_sysex_message(uint32_t addr_a, uint32_t addr_b, uint32_t addr_c,
-                               void *data, uint32_t size, uint32_t delay);
+                                void *data, uint32_t size, uint32_t delay);
 void xmidi32_write_display(const char *string);
 
 uint32_t xmidi32_lock_channel(void);
@@ -143,22 +143,26 @@ void xmidi32_XMIDI_volume(struct sequence_state *st);
 uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st);
 uint32_t xmidi32_XMIDI_meta(struct sequence_state *st);
 void xmidi32_XMIDI_sysex(const uint8_t *data, uint32_t size, uint32_t type);
-void xmidi32_release_seq(HSEQUENCE sequence);
 
-uint32_t xmidi32_get_beat_count(HSEQUENCE sequence);
-uint32_t xmidi32_get_bar_count(HSEQUENCE sequence);
-
-void xmidi32_map_seq_channel(HSEQUENCE sequence, uint32_t seq_chan, uint32_t phys_chan);
-uint32_t xmidi32_true_seq_channel(HSEQUENCE sequence, uint32_t seq_chan);
-void xmidi32_branch_index(HSEQUENCE sequence, uint32_t marker);
+uint32_t xmidi32_get_timbre_cache_size(HDRIVER h);
+void xmidi32_define_timbre_cache(HDRIVER h, void *addr, uint32_t size);
+uint32_t xmidi32_timbre_request(HDRIVER h, HSEQUENCE seq);
+void xmidi32_install_timbre(HDRIVER h, uint32_t bank, uint32_t patch, const void *data);
+void xmidi32_protect_timbre(HDRIVER h, uint32_t bank, uint32_t patch);
+void xmidi32_unprotect_timbre(HDRIVER h, uint32_t bank, uint32_t patch);
+uint32_t xmidi32_timbre_status(HDRIVER h, int32_t bank, int32_t patch);
+uint32_t xmidi32_detect_device(HDRIVER h, uint32_t IO, uint32_t IRQ, uint32_t DMA, uint32_t DRQ);
 
 void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
-                          uint32_t DMA, uint32_t DRQ);
+                         uint32_t DMA, uint32_t DRQ);
 void xmidi32_describe_driver(void *desc);
+void xmidi32_shutdown_driver(HDRIVER h, const char *msg);
 
 uint8_t *find_seq(uint8_t *XMID, uint32_t seq_num);
 void rewind_seq(HSEQUENCE sequence);
 void flush_channel_notes(uint32_t chan);
 void flush_note_queue(struct sequence_state *st);
+
+void *AIL_API_per_service(void *driver, uint32_t service);
 
 #endif
