@@ -1,4 +1,5 @@
 #include "xmidi32_driver.h"
+#include "xmidi32_critical.h"
 
 static void flush_seq_channel(struct sequence_state *st, uint32_t chan) {
     uint32_t j;
@@ -11,18 +12,15 @@ static void flush_seq_channel(struct sequence_state *st, uint32_t chan) {
         uint32_t note = st->note_queue[j].num;
         uint32_t phys_chan = st->chan_map[chan];
         st->note_queue[j].chan = 0xFF;
-        if (phys_chan < NUM_CHANS && active_notes[phys_chan] != 0) {
-            active_notes[phys_chan]--;
+        if (phys_chan < NUM_CHANS) {
+            xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan],
+                             (uint32_t)-1);
         }
         xmidi32_send_note_off(phys_chan, note, 0);
         flushed++;
     }
 
-    if (flushed > 0 && st->note_count >= flushed) {
-        st->note_count -= (uint16_t)flushed;
-    } else {
-        st->note_count = 0;
-    }
+    st->note_count = 0;
 }
 
 void flush_note_queue(struct sequence_state *st) {
@@ -33,8 +31,9 @@ void flush_note_queue(struct sequence_state *st) {
         uint32_t note = st->note_queue[i].num;
         uint32_t phys_chan = st->chan_map[st->note_queue[i].chan & 0x0F];
         st->note_queue[i].chan = 0xFF;
-        if (phys_chan < NUM_CHANS && active_notes[phys_chan] != 0) {
-            active_notes[phys_chan]--;
+        if (phys_chan < NUM_CHANS) {
+            xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan],
+                             (uint32_t)-1);
         }
         xmidi32_send_note_off(phys_chan, note, 0);
     }

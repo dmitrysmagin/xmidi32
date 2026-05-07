@@ -4,6 +4,7 @@
 #include "xmidi32_config.h"
 #include "xmidi32_types.h"
 #include "xmidi32_backend.h"
+#include "xmidi32_critical.h"
 
 typedef int32_t HTIMER;
 typedef int32_t HDRIVER;
@@ -69,6 +70,7 @@ extern uint8_t global_pitch_h[NUM_CHANS];
 extern uint8_t active_notes[NUM_CHANS];
 extern uint8_t lock_status[NUM_CHANS];
 extern uint16_t init_OK;
+extern uint16_t trigger_active;
 
 extern struct sequence_state *sequence_states[NSEQS];
 

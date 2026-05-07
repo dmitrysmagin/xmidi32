@@ -1,9 +1,10 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_reset.h"
+#include "xmidi32_critical.h"
+#include "xmidi32_critical.h"
 
 void xmidi32_serve_driver(void) {
-    if (service_active != 0) return;
-    service_active = 1;
+    if (!xm32_try_enter(&service_active)) return;
 
     current_handle = -4;
 
@@ -36,7 +37,9 @@ void xmidi32_serve_driver(void) {
                         uint8_t note = st->note_queue[note_slot].num;
                         st->note_queue[note_slot].chan = 0xFF;
                         if (st->chan_map[chan & 0x0F] < NUM_CHANS) {
-                            active_notes[st->chan_map[chan & 0x0F]]--;
+                            uint32_t pc = st->chan_map[chan & 0x0F];
+                            xm32_atomic_add((volatile uint32_t *)&active_notes[pc],
+                                             (uint32_t)-1);
                         }
                         xmidi32_send_note_off(st->chan_map[chan & 0x0F], note, 0);
                         st->note_count--;
@@ -139,6 +142,12 @@ void xmidi32_serve_driver(void) {
 
 end_event:
             if (st->status != SEQ_PLAYING) continue;
+            (void)phys_chan;
+            (void)ctrl;
+            (void)log_chan;
+            (void)data1;
+            (void)data2;
+            (void)status;
             continue;
         }
 
@@ -205,5 +214,5 @@ check_beat:
 
 done_synth:
     serve_synth();
-    service_active = 0;
+    xm32_leave(&service_active);
 }

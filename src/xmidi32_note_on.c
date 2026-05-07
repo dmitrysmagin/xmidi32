@@ -1,4 +1,5 @@
 #include "xmidi32_driver.h"
+#include "xmidi32_critical.h"
 
 uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
     const uint8_t *p = st->EVNT_ptr;
@@ -41,7 +42,7 @@ uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
     st->note_queue[slot].num = note;
     st->note_queue[slot].time = (int32_t)duration - 1;
 
-    active_notes[phys_chan]++;
+    xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan], 1);
     xmidi32_send_note_on(phys_chan, note, velocity);
 
     return event_len;
