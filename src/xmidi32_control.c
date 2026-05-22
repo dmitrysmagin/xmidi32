@@ -1,7 +1,6 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_control.h"
 #include "xmidi32_critical.h"
-#define CTRL_LOG(st, ctrl_idx) (((uint8_t *)&(st)->chan_controls)[(ctrl_idx) * NUM_CHANS])
 
 uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
                               uint32_t ctrl, uint32_t val) {
@@ -13,7 +12,7 @@ uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
     uint8_t hash = ctrl_hash[ctrl & 0x7F];
     if (hash != 0xFF) {
         global_controls.PV[log_chan] = (uint8_t)val;
-        CTRL_LOG(st, hash)[log_chan] = (uint8_t)val;
+        ((uint8_t *)&(st)->chan_controls)[hash * NUM_CHANS + log_chan] = (uint8_t)val;
     }
 
     if (ctrl == PART_VOLUME) {

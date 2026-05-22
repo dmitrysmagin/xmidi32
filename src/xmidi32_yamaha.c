@@ -5,6 +5,10 @@
 
 #if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262
 
+#ifdef XMI_EMULATION
+void xmi_backend_opl_write(uint16_t reg, uint8_t val);
+#endif
+
 #define MAX_TIMBS     192
 #define DEF_TC_SIZE   3584
 #define NUM_CHANS_MAX 16
@@ -56,7 +60,43 @@
 #define VEL_TRUE  0
 #endif
 
+#pragma pack(push, 1)
+struct BNK_timbre {
+    uint16_t B_length;
+    int8_t   B_transpose;
+    uint8_t  B_mod_AVEKM;
+    uint8_t  B_mod_KSLTL;
+    uint8_t  B_mod_AD;
+    uint8_t  B_mod_SR;
+    uint8_t  B_mod_WS;
+    uint8_t  B_fb_c;
+    uint8_t  B_car_AVEKM;
+    uint8_t  B_car_KSLTL;
+    uint8_t  B_car_AD;
+    uint8_t  B_car_SR;
+    uint8_t  B_car_WS;
+};
 
+struct OPL3BNK_timbre {
+    struct BNK_timbre base;
+    uint8_t  O_mod_AVEKM;
+    uint8_t  O_mod_KSLTL;
+    uint8_t  O_mod_AD;
+    uint8_t  O_mod_SR;
+    uint8_t  O_mod_WS;
+    uint8_t  O_fb_c;
+    uint8_t  O_car_AVEKM;
+    uint8_t  O_car_KSLTL;
+    uint8_t  O_car_AD;
+    uint8_t  O_car_SR;
+    uint8_t  O_car_WS;
+};
+#pragma pack(pop)
+
+static void release_voice(int32_t slot);
+static void update_voice(int32_t slot);
+static uint32_t index_timbre(uint16_t gnum);
+static void delete_LRU(void);
 
 static uint32_t DATA_OUT;
 static uint32_t ADDR_STAT;
@@ -158,6 +198,10 @@ static const uint8_t carrier_01_data[18] = { 0,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 static const uint8_t carrier_23_data[18] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 #endif
 
+#ifdef XMI_EMULATION
+static inline void outport(uint16_t port, uint8_t val) { (void)port; (void)val; }
+static inline uint8_t inport(uint16_t port) { (void)port; return 0; }
+#else
 static inline void outport(uint16_t port, uint8_t val) {
 #if defined(_MSC_VER)
     _outp((unsigned short)port, (int)val);
@@ -175,6 +219,7 @@ static inline uint8_t inport(uint16_t port) {
     return val;
 #endif
 }
+#endif
 
 static void io_delay(void) {
     volatile int i;
@@ -184,25 +229,31 @@ static void io_delay(void) {
 static void update_reg(uint8_t oper, uint8_t base, uint8_t val) {
     uint8_t bh = op_array[oper];
     uint8_t bl = (uint8_t)((op_index[oper] + base) & 0xFF);
-    (void)bh;
 
+#ifdef XMI_EMULATION
+    xmi_backend_opl_write(((uint16_t)bh << 8) | bl, val);
+#else
     io_delay();
-    outport((uint16_t)ADDR_STAT, bl);
+    outport((uint16_t)(ADDR_STAT + bh * 2), bl);
     io_delay();
-    outport((uint16_t)(ADDR_STAT + 1), val);
+    outport((uint16_t)(ADDR_STAT + 1 + bh * 2), val);
     io_delay();
+#endif
 }
 
 static void send_byte(uint8_t voice, uint8_t base, uint8_t val) {
     uint8_t bh = voice_array[voice];
     uint8_t bl = (uint8_t)((voice_num[voice] + base) & 0xFF);
-    (void)bh;
 
+#ifdef XMI_EMULATION
+    xmi_backend_opl_write(((uint16_t)bh << 8) | bl, val);
+#else
     io_delay();
-    outport((uint16_t)ADDR_STAT, bl);
+    outport((uint16_t)(ADDR_STAT + bh * 2), bl);
     io_delay();
-    outport((uint16_t)(ADDR_STAT + 1), val);
+    outport((uint16_t)(ADDR_STAT + 1 + bh * 2), val);
     io_delay();
+#endif
 }
 
 static void detect_send(uint8_t address, uint8_t data) {
@@ -225,6 +276,9 @@ static uint8_t read_status(void) {
     return inport((uint16_t)ADDR_STAT);
 }
 
+#ifdef XMI_EMULATION
+static int32_t detect_Adlib(void) { return 1; }
+#else
 static int32_t detect_Adlib(void) {
     detect_send(4, 0x60);
     detect_send(4, 0x80);
@@ -244,6 +298,7 @@ static int32_t detect_Adlib(void) {
     if (s2 != 0xC0) return 0;
     return 1;
 }
+#endif
 
 static uint32_t index_timbre(uint16_t gnum) {
     uint8_t num = (uint8_t)(gnum & 0xFF);
@@ -321,10 +376,7 @@ void yamaha_define_cache(void *addr, uint32_t size) {
 
 uint32_t yamaha_get_cache_size(void) { return cache_size; }
 
-static uint32_t index_timbre(uint16_t gnum);
-static void delete_LRU(void);
-
-static uint32_t do_install_timbre(uint16_t gnum, const void *data) {
+static void do_install_timbre(uint16_t gnum, const void *data) {
     uint8_t num = (uint8_t)(gnum & 0xFF);
     uint8_t bank = (uint8_t)((gnum >> 8) & 0xFF);
 
@@ -408,42 +460,6 @@ int32_t yamaha_timbre_status(uint32_t bank, uint32_t patch) {
     if (idx == 0xFFFFFFFF) return 0;
     return (int32_t)(timb_offsets[idx] + 1);
 }
-
-static void release_voice(int32_t slot);
-static void update_voice(int32_t slot);
-
-#pragma pack(push, 1)
-struct BNK_timbre {
-    uint16_t B_length;
-    int8_t   B_transpose;
-    uint8_t  B_mod_AVEKM;
-    uint8_t  B_mod_KSLTL;
-    uint8_t  B_mod_AD;
-    uint8_t  B_mod_SR;
-    uint8_t  B_mod_WS;
-    uint8_t  B_fb_c;
-    uint8_t  B_car_AVEKM;
-    uint8_t  B_car_KSLTL;
-    uint8_t  B_car_AD;
-    uint8_t  B_car_SR;
-    uint8_t  B_car_WS;
-};
-
-struct OPL3BNK_timbre {
-    struct BNK_timbre base;
-    uint8_t  O_mod_AVEKM;
-    uint8_t  O_mod_KSLTL;
-    uint8_t  O_mod_AD;
-    uint8_t  O_mod_SR;
-    uint8_t  O_mod_WS;
-    uint8_t  O_fb_c;
-    uint8_t  O_car_AVEKM;
-    uint8_t  O_car_KSLTL;
-    uint8_t  O_car_AD;
-    uint8_t  O_car_SR;
-    uint8_t  O_car_WS;
-};
-#pragma pack(pop)
 
 static void release_voice(int32_t slot) {
     if (S_voice[slot] < 0) return;
@@ -871,7 +887,7 @@ static void update_priority(void) {
     update_voice(new_vi);
 }
 
-static void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
+void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
     if (chan >= NUM_CHANS_MAX) return;
     if (MIDI_timbre[chan] < 0) return;
 
@@ -933,7 +949,7 @@ static void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
     assign_voice(slot);
 }
 
-static void yamaha_note_off(uint32_t chan, uint32_t note) {
+void yamaha_note_off(uint32_t chan, uint32_t note) {
     if (chan >= NUM_CHANS_MAX) return;
     int32_t si;
     for (si = 0; si < (int32_t)NUM_SLOTS_MAX; si++) {
@@ -954,7 +970,7 @@ static void yamaha_note_off(uint32_t chan, uint32_t note) {
     }
 }
 
-static void yamaha_controller(uint32_t chan, uint32_t ctrl, uint32_t val) {
+void yamaha_controller(uint32_t chan, uint32_t ctrl, uint32_t val) {
     if (chan >= NUM_CHANS_MAX) return;
 
     switch (ctrl) {
@@ -1011,7 +1027,7 @@ static void yamaha_controller(uint32_t chan, uint32_t ctrl, uint32_t val) {
     (void)val;
 }
 
-static void yamaha_program_change(uint32_t chan, uint32_t program) {
+void yamaha_program_change(uint32_t chan, uint32_t program) {
     if (chan >= NUM_CHANS_MAX) return;
     MIDI_program[chan] = (int8_t)program;
     uint16_t gnum = (uint16_t)((MIDI_bank[chan] << 8) | (program & 0xFF));
@@ -1019,7 +1035,7 @@ static void yamaha_program_change(uint32_t chan, uint32_t program) {
     MIDI_timbre[chan] = (int8_t)idx;
 }
 
-static void yamaha_pitch_bend(uint32_t chan, uint32_t pitch_l, uint32_t pitch_h) {
+void yamaha_pitch_bend(uint32_t chan, uint32_t pitch_l, uint32_t pitch_h) {
     if (chan >= NUM_CHANS_MAX) return;
     MIDI_pitch_l[chan] = (uint8_t)pitch_l;
     MIDI_pitch_h[chan] = (uint8_t)pitch_h;

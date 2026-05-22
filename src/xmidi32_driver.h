@@ -60,7 +60,7 @@ extern struct driver_entry driver_index[NUM_DRIVER_ENTRIES];
 
 extern int32_t sequence_count;
 extern int32_t current_handle;
-extern uint16_t service_active;
+extern uint32_t service_active;
 extern int32_t (*trigger_fn)(int32_t, int32_t);
 
 extern struct ctrl_log global_controls;
@@ -70,7 +70,7 @@ extern uint8_t global_pitch_h[NUM_CHANS];
 extern uint8_t active_notes[NUM_CHANS];
 extern uint8_t lock_status[NUM_CHANS];
 extern uint16_t init_OK;
-extern uint16_t trigger_active;
+extern uint32_t trigger_active;
 
 extern struct sequence_state *sequence_states[NSEQS];
 
@@ -101,7 +101,7 @@ HSEQUENCE xmidi32_register_seq(
 );
 
 void xmidi32_release_seq(HSEQUENCE sequence);
-void xmidi32_start_seq(HSEQUENCE sequence);
+HSEQUENCE xmidi32_start_seq(HSEQUENCE sequence);
 void xmidi32_stop_seq(HSEQUENCE sequence);
 void xmidi32_resume_seq(HSEQUENCE sequence);
 uint16_t xmidi32_get_seq_status(HSEQUENCE sequence);
@@ -140,12 +140,12 @@ void xmidi32_send_pitch_bend(uint32_t phys_chan, uint32_t pitch_l, uint32_t pitc
 void xmidi32_send_raw_message(uint32_t status, uint32_t data_1, uint32_t data_2);
 void xmidi32_send_sysex(const uint8_t *data, uint32_t size);
 
-void xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
-                          uint32_t ctrl, uint32_t val);
+uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
+                              uint32_t ctrl, uint32_t val);
 void xmidi32_XMIDI_volume(struct sequence_state *st);
 uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st);
 uint32_t xmidi32_XMIDI_meta(struct sequence_state *st);
-void xmidi32_XMIDI_sysex(const uint8_t *data, uint32_t size, uint32_t type);
+uint32_t xmidi32_XMIDI_sysex(struct sequence_state *st);
 
 uint32_t xmidi32_get_timbre_cache_size(HDRIVER h);
 void xmidi32_define_timbre_cache(HDRIVER h, void *addr, uint32_t size);

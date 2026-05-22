@@ -1,4 +1,5 @@
 #include "xmidi32_driver.h"
+#include "xmidi32_utils.h"
 
 uint32_t xmidi32_XMIDI_sysex(struct sequence_state *st) {
     const uint8_t *p = st->EVNT_ptr;

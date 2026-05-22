@@ -1,11 +1,6 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_utils.h"
 
-static uint32_t read_be32(const uint8_t *p) {
-    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) |
-           ((uint32_t)p[2] << 8)  | (uint32_t)p[3];
-}
-
 uint8_t *find_seq(uint8_t *XMID, uint32_t seq_num) {
     uint8_t *p = XMID;
     uint8_t *end_addr;

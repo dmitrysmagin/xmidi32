@@ -236,7 +236,7 @@ const int8_t alt_voice[18] = {
     3, 4, 5, 0, 1, 2, -1, -1, -1, 12, 13, 14, 9, 10, 11, -1, -1, -1
 };
 
-uint8_t conn_shadow = 0;
+extern uint8_t conn_shadow;
 
 const uint8_t carrier_01[18] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1

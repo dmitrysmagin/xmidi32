@@ -91,23 +91,7 @@ struct driver_entry driver_index[NUM_DRIVER_ENTRIES] = {
     { 0xFFFFFFFFU,          NULL }
 };
 
-void xmidi32_shutdown_driver(HDRIVER h, const char *msg) {
-    (void)h;
-    if (init_OK == 0) return;
 
-    int32_t i;
-    for (i = 0; i < NSEQS; i++) {
-        if (sequence_states[i] == NULL) continue;
-        xmidi32_stop_seq((HSEQUENCE)i);
-        xmidi32_release_seq((HSEQUENCE)i);
-    }
-
-    if (msg != NULL) {
-        xmidi32_write_display(msg);
-    }
-
-    init_OK = 0;
-}
 
 void xmidi32_send_channel_voice_message(uint32_t status, uint32_t data_1, uint32_t data_2) {
     xmidi32_send_raw_message(status, data_1, data_2);

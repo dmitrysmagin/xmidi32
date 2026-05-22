@@ -1,4 +1,5 @@
 #include "xmidi32_driver.h"
+#include "xmidi32_utils.h"
 
 int32_t xmidi32_get_rel_tempo(HSEQUENCE sequence) {
     if (sequence == (HSEQUENCE)-1) return -1;

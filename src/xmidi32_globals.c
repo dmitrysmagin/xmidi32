@@ -7,8 +7,8 @@ uint8_t global_pitch_h[NUM_CHANS];
 uint8_t active_notes[NUM_CHANS];
 uint8_t lock_status[NUM_CHANS];
 uint16_t init_OK = 0;
-uint16_t service_active = 0;
-uint16_t trigger_active = 0;
+uint32_t service_active = 0;
+uint32_t trigger_active = 0;
 int32_t (*trigger_fn)(int32_t, int32_t) = NULL;
 
 struct sequence_state *sequence_states[NSEQS];

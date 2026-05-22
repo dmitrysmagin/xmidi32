@@ -117,4 +117,7 @@ static inline void xm32_atomic_store16(volatile uint16_t *addr, uint16_t val) {
 #endif
 }
 
+static inline uint32_t xm32_try_enter_callback(void) { return 1; }
+static inline void xm32_leave_callback(void) {}
+
 #endif
