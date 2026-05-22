@@ -1,7 +1,6 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_backend.h"
 #include "xmidi32_yamaha.h"
-#include <stdio.h>
 #include "xmidi32_yamaha_tables.h"
 
 #if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262
@@ -640,10 +639,10 @@ static void update_voice(int32_t slot) {
     uint8_t vol = 64;
     if (S_update[slot] & U_KSLTL) {
         int32_t ch = S_channel[slot] & 0x0F;
-        uint32_t v = ((uint32_t)MIDI_vol[ch] * (uint32_t)MIDI_express[ch]) >> 8;
+        uint32_t v = ((uint32_t)MIDI_vol[ch] * (uint32_t)MIDI_express[ch]) >> 7;
         if (v == 0) v = 1;
         uint32_t vel = S_velocity[slot];
-        vol = (uint8_t)((((v * vel) >> 8) == 0) ? 1 : ((v * vel) >> 8));
+        vol = (uint8_t)((((v * vel) >> 7) == 0) ? 1 : ((v * vel) >> 7));
     }
 
     int32_t arr = 0;
@@ -1130,6 +1129,12 @@ void init_synth(void) {
         MIDI_voices[i] = 0;
         MIDI_program[i] = -1;
         MIDI_bank[i] = 0;
+        MIDI_vol[i] = 100;
+        MIDI_express[i] = 127;
+        MIDI_pan[i] = 64;
+        MIDI_sus[i] = 0;
+        MIDI_pitch_l[i] = 0;
+        MIDI_pitch_h[i] = 64;
     }
     for (i = 0; i < (int32_t)NUM_SLOTS_MAX; i++) S_status[i] = SLOT_FREE;
     for (i = 0; i < (int32_t)NUM_VOICES_MAX; i++) V_channel[i] = -1;
