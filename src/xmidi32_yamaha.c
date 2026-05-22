@@ -106,7 +106,7 @@ static uint32_t timb_offsets[MAX_TIMBS];
 static uint8_t  timb_bank[MAX_TIMBS];
 static uint8_t  timb_num[MAX_TIMBS];
 static uint8_t  timb_attribs[MAX_TIMBS];
-static uint32_t cache_base;
+static uint8_t *cache_base;
 static uint32_t cache_size;
 static uint32_t cache_end;
 static uint16_t TV_accum;
@@ -326,12 +326,12 @@ static void delete_LRU(void) {
     if (lru_idx < 0) return;
 
     uint32_t toff = timb_offsets[lru_idx];
-    uint8_t *timb_ptr = (uint8_t*)(cache_base + toff);
+    uint8_t *timb_ptr = cache_base + toff;
     uint16_t tsize = *(uint16_t*)timb_ptr;
 
-    uint8_t *dst = (uint8_t*)(cache_base + toff);
+    uint8_t *dst = cache_base + toff;
     uint8_t *src = dst + tsize;
-    uint32_t count = (cache_base + cache_end) - (uint32_t)src;
+    uint32_t count = (uint32_t)((cache_base + cache_end) - src);
     int32_t j;
     for (j = 0; j < (int32_t)count; j++) dst[j] = src[j];
 
@@ -369,7 +369,7 @@ uint32_t yamaha_get_note_event(void) { return note_event_ctr; }
 void yamaha_set_note_event(uint32_t ctr) { note_event_ctr = ctr; }
 
 void yamaha_define_cache(void *addr, uint32_t size) {
-    cache_base = (uint32_t)(uintptr_t)addr;
+    cache_base = (uint8_t *)addr;
     cache_size = size;
     cache_end = 0;
 }
@@ -415,7 +415,7 @@ static void do_install_timbre(uint16_t gnum, const void *data) {
     if (slot == 0xFF) { delete_LRU(); slot = 0; }
 
     uint32_t off = cache_end;
-    uint8_t *dst = (uint8_t *)(cache_base + off);
+    uint8_t *dst = cache_base + off;
     uint32_t k;
     for (k = 0; k < tsize; k++) dst[k] = ((const uint8_t *)data)[k];
 
@@ -517,7 +517,6 @@ static void assign_voice(int32_t slot) {
 #endif
 
     int32_t dx = -1;
-    int32_t bx = rover_2op;
     int32_t v;
     for (v = 0; v < NUM_VOICES_MAX; v++) {
         dx++;
@@ -542,7 +541,7 @@ static void OPL_phase(int32_t slot);
 
 static void BNK_phase(int32_t slot) {
     uint32_t off = ((uint32_t)S_timbre_off_h[slot] << 8) | S_timbre_off_l[slot];
-    uint8_t *tptr = (uint8_t*)(cache_base + off);
+    uint8_t *tptr = cache_base + off;
 
     S_BLOCK[slot] = 0x20;
     S_type[slot]  = BNK_INST;
@@ -593,7 +592,7 @@ static void OPL_phase(int32_t slot) {
     BNK_phase(slot);
 
     uint32_t off = ((uint32_t)S_timbre_off_h[slot] << 8) | S_timbre_off_l[slot];
-    uint8_t *tptr = (uint8_t*)(cache_base + off);
+    uint8_t *tptr = cache_base + off;
     struct OPL3BNK_timbre *bnk = (struct OPL3BNK_timbre*)tptr;
 
     S_type[slot] = OPL3_INST;
@@ -677,7 +676,7 @@ static void update_voice(int32_t slot) {
             (void)vop0; (void)vop1;
 #endif
         } else {
-            int32_t vi0 = S_voice[slot];
+            (void)S_voice[slot];
         }
 
         if (S_update[slot] & U_AVEKM) {
@@ -741,10 +740,9 @@ static void update_voice(int32_t slot) {
         }
 
         if (S_update[slot] & U_FBC) {
-            int32_t ch = S_channel[slot] & 0x0F;
-            uint8_t fbc = (uint8_t)(((S_FBC[slot] & 1) | 0x30) & 0xFF);
+            int32_t fbc = (uint8_t)(((S_FBC[slot] & 1) | 0x30) & 0xFF);
 #if SYNTH_TYPE == YMF262
-            uint8_t pan = MIDI_pan[ch];
+            uint8_t pan = MIDI_pan[S_channel[slot] & 0x0F];
             if (pan <= R_PAN_THRESH) {
                 fbc &= RIGHT_MASK;
             } else if (pan >= L_PAN_THRESH) {
@@ -841,7 +839,7 @@ static void update_priority(void) {
                 low_4op = si;
             }
 #endif
-            if (pri < low_voiced_pri) {
+            if ((int32_t)pri < low_voiced_pri) {
                 low_voiced_pri = (int32_t)pri;
                 low_voiced = si;
             }
@@ -893,7 +891,7 @@ void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
 
     int32_t timb_idx = MIDI_timbre[chan];
     uint32_t off = timb_offsets[timb_idx];
-    uint8_t *tptr = (uint8_t*)(cache_base + off);
+    uint8_t *tptr = cache_base + off;
 
     note_event_ctr++;
     timb_hist[timb_idx] = note_event_ctr;

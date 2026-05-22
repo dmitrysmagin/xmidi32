@@ -4,9 +4,9 @@
 
 uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
                               uint32_t ctrl, uint32_t val) {
-    if (st->chan_indirect[log_chan] != 0xFF) {
+    if (st->chan_indirect[log_chan] != -1) {
         val = (uint32_t)(uint8_t)st->chan_indirect[log_chan];
-        st->chan_indirect[log_chan] = 0xFF;
+        st->chan_indirect[log_chan] = -1;
     }
 
     uint8_t hash = ctrl_hash[ctrl & 0x7F];

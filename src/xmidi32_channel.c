@@ -2,7 +2,6 @@
 
 uint32_t xmidi32_lock_channel(void) {
     int32_t best = -1;
-    uint8_t best_notes = 0;
     uint8_t mask = 0xC0;
 
     for (;;) {
@@ -20,7 +19,6 @@ uint32_t xmidi32_lock_channel(void) {
 
         if (cand != -1) {
             best = cand;
-            best_notes = cand_notes;
             break;
         }
 

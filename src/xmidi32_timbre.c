@@ -3,8 +3,6 @@
 
 #define DEF_TC_SIZE 3584
 
-static uint32_t cache_size = 0;
-
 uint32_t xmidi32_detect_device(HDRIVER h, uint32_t IO, uint32_t IRQ,
                                 uint32_t DMA, uint32_t DRQ) {
     (void)h;

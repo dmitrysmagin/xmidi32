@@ -1,3 +1,4 @@
+#include <string.h>
 #include "xmidi32_driver.h"
 
 struct ctrl_log global_controls;
@@ -38,15 +39,15 @@ uint8_t ctrl_hash[256];
 
 void xmidi32_init_globals(void) {
     uint32_t i;
-    uint32_t gsize = sizeof(struct ctrl_log) + NUM_CHANS * 3;
 
     for (i = 0; i < 256; i++) {
         ctrl_hash[i] = 0xFF;
     }
 
-    for (i = 0; i < gsize; i++) {
-        ((uint8_t *)&global_controls)[i] = 0xFF;
-    }
+    memset(&global_controls, 0xFF, sizeof(struct ctrl_log));
+    memset(global_program, 0xFF, NUM_CHANS);
+    memset(global_pitch_l, 0xFF, NUM_CHANS);
+    memset(global_pitch_h, 0xFF, NUM_CHANS);
 
     for (i = 0; i < NSEQS; i++) {
         sequence_states[i] = NULL;

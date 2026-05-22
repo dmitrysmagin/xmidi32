@@ -4,8 +4,8 @@ CFLAGS = -Wall -Wextra -Os -g -I. -Isrc
 LDFLAGS =
 LIBS =
 
-SDL_CFLAGS = -I$(MSYS)/include/SDL2 -Dmain=SDL_main
-SDL_LIBS = -L$(MSYS)/lib -lmingw32 -mwindows -lSDL2main -lSDL2
+SDL_CFLAGS = -I$(MSYS)/include -Dmain=SDL_main
+SDL_LIBS = -L$(MSYS)/lib -lmingw32 -lSDL2main -lSDL2
 
 SRC_FILES = $(filter-out src/xmidi32_yamaha_stub.c, $(wildcard src/*.c))
 GLUE_FILES = opl3.c backend.c sdl_audio.c timbre_bank.c sample_ad.c sample_opl.c

@@ -1,3 +1,4 @@
+#include <string.h>
 #include "xmidi32_driver.h"
 #include "xmidi32_backend.h"
 
@@ -19,11 +20,11 @@ void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
     service_active = 0;
     sequence_count = 0;
 
-    uint32_t gsize = sizeof(struct ctrl_log) + NUM_CHANS * 3;
     uint32_t i;
-    for (i = 0; i < gsize; i++) {
-        ((uint8_t *)&global_controls)[i] = 0xFF;
-    }
+    memset(&global_controls, 0xFF, sizeof(struct ctrl_log));
+    memset(global_program, 0xFF, NUM_CHANS);
+    memset(global_pitch_l, 0xFF, NUM_CHANS);
+    memset(global_pitch_h, 0xFF, NUM_CHANS);
     for (i = 0; i < 256; i++) {
         ctrl_hash[i] = 0xFF;
     }
@@ -46,13 +47,13 @@ void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
 
     xmidi32_cancel_callback();
 
-    for (i = MIN_TRUE_CHAN - 1; i < (uint32_t)(MAX_REC_CHAN - 1); i++) {
+    for (i = MIN_TRUE_CHAN - 1; i < (uint32_t)(MAX_TRUE_CHAN - 1); i++) {
         send_default_controllers(i);
     }
 
     sysex_wait(10);
 
-    for (i = MIN_TRUE_CHAN - 1; i < (uint32_t)(MAX_REC_CHAN - 1); i++) {
+    for (i = MIN_TRUE_CHAN - 1; i < (uint32_t)(MAX_TRUE_CHAN - 1); i++) {
         global_pitch_l[i] = DEF_PITCH_L;
         global_pitch_h[i] = DEF_PITCH_H;
         xmidi32_send_pitch_bend(i, DEF_PITCH_L, DEF_PITCH_H);
