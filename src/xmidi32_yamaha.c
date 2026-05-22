@@ -1,6 +1,7 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_backend.h"
 #include "xmidi32_yamaha.h"
+#include <stdio.h>
 #include "xmidi32_yamaha_tables.h"
 
 #if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262

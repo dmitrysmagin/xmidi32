@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <SDL2/SDL.h>
 #include "backend.h"
 #include "sdl_audio.h"
@@ -9,6 +10,13 @@
 #include "src/xmidi32_timbre_internal.h"
 
 #define TIMBRE_CACHE_SIZE 12288
+
+static volatile sig_atomic_t g_stop_requested = 0;
+
+static void sigint_handler(int sig) {
+    (void)sig;
+    g_stop_requested = 1;
+}
 
 static uint8_t *load_file(const char *path, uint32_t *size) {
     FILE *f = fopen(path, "rb");
@@ -99,9 +107,10 @@ int main(int argc, char *argv[]) {
 
     printf("Playing %d sequence(s)... Press Ctrl+C to stop.\n", registered);
 
+    signal(SIGINT, sigint_handler);
+
     int playing = 1;
-    while (playing) {
-        xmidi32_serve_driver();
+    while (playing && !g_stop_requested) {
         SDL_Delay(8);
 
         playing = 0;
