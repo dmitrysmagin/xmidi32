@@ -1,0 +1,1 @@
+Usage: xmi_play <file.xmi> [file2.xmi ...]

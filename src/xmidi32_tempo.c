@@ -134,7 +134,7 @@ void xmidi32_branch_index(HSEQUENCE sequence, uint32_t marker) {
     struct sequence_state *st = sequence_states[sequence];
     if (st == NULL) return;
     if (st->RBRN == NULL) return;
-    if (read_be32(st->RBRN) != 0x4E524252U) return;
+    if (read_be32(st->RBRN) != 0x5242524Eu) return;
 
     uint16_t count = (uint16_t)(st->RBRN[8] << 8) | st->RBRN[9];
     const uint8_t *p = st->RBRN + 10;

@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wextra -Os -g -I. -Isrc
 LDFLAGS =
 LIBS =
 
-SDL_CFLAGS = -I$(MSYS)/include -Dmain=SDL_main
+SDL_CFLAGS = -I$(MSYS)/include -mconsole
 SDL_LIBS = -L$(MSYS)/lib -lmingw32 -lSDL2main -lSDL2
 
 SRC_FILES = $(filter-out src/xmidi32_yamaha_stub.c, $(wildcard src/*.c))

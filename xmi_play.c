@@ -72,32 +72,37 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < nseqs; i++) {
         seq_data[i] = load_file(argv[i + 1], &seq_sizes[i]);
         if (!seq_data[i]) {
-            fprintf(stderr, "Failed to load %s\n", argv[i + 1]);
+            fprintf(stderr, "FAIL: load %s\n", argv[i + 1]);
             continue;
         }
 
+        fprintf(stderr, "DBG: registering %s\n", argv[i + 1]);
         HSEQUENCE h = xmidi32_register_seq(seq_data[i], 0, &states[registered], NULL);
+        fprintf(stderr, "DBG: reg returned %d\n", (int)h);
         if (h == (HSEQUENCE)-1) {
-            fprintf(stderr, "Failed to register sequence %s\n", argv[i + 1]);
+            fprintf(stderr, "FAIL: register %s\n", argv[i + 1]);
             continue;
         }
         handles[registered] = h;
+        fprintf(stderr, "DBG: reg done, mapping channels\n");
 
         uint32_t j;
         for (j = 0; j < NUM_CHANS; j++) {
             xmidi32_map_seq_channel(h, j, j);
         }
 
+        fprintf(stderr, "DBG: starting seq\n");
         xmidi32_start_seq(h);
+        fprintf(stderr, "DBG: status after start=%d\n", xmidi32_get_seq_status(h));
         registered++;
     }
 
     if (registered == 0) {
-        fprintf(stderr, "No sequences registered\n");
+        fprintf(stderr, "FAIL: no sequences\n");
         goto cleanup;
     }
 
-    printf("Playing %d sequence(s)... Press Ctrl+C to stop.\n", registered);
+    fprintf(stderr, "DBG: entering loop, %d seqs\n", registered);
 
     int playing = 1;
     while (playing) {
@@ -114,7 +119,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("Playback complete.\n");
+    fprintf(stderr, "DBG: playback done\n");
     SDL_Delay(500);
 
 cleanup:

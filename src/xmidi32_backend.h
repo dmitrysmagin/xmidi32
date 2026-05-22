@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define XMI_EMULATION 1
+
 #define YM3812  1
 #define YMF262  2
 #define ROLAND  3

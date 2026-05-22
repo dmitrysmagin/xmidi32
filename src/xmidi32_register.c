@@ -39,11 +39,11 @@ HSEQUENCE xmidi32_register_seq(
         uint32_t tag = read_be32(p);
         uint32_t chunk_len = read_be32(p + 4);
 
-        if (tag == 0x42494D54U) {
+        if (tag == 0x54494D42u) {
             state->TIMB = p;
-        } else if (tag == 0x4E524252U) {
+        } else if (tag == 0x5242524Eu) {
             state->RBRN = p;
-        } else if (tag == 0x54454E56U) {
+        } else if (tag == 0x45564E54u) {
             state->EVNT = p;
             break;
         }
