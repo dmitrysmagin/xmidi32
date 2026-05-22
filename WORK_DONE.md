@@ -6,7 +6,9 @@ This is a port of the **Miles Design, Inc. XMIDI32** library — an IBM Audio In
 
 ## Project Structure
 
-### Original ASM/INC Files (root)
+### Original ASM/INC Files (in `ail32_V105/`)
+
+All original MASM source files have been moved into the `ail32_V105/` subdirectory:
 
 | File | Description |
 |---|---|
