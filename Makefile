@@ -6,7 +6,7 @@ LDFLAGS =
 LIBS =
 
 SDL_CONFIG  := sdl2-config
-SDL_CFLAGS  := $(shell $(SDL_CONFIG) --cflags)
+SDL_CFLAGS  := $(shell $(SDL_CONFIG) --cflags | sed 's/-Dmain=SDL_main//')
 SDL_LDFLAGS := $(shell $(SDL_CONFIG) --libs)
 
 ifeq ($(OS),Windows_NT)

@@ -11,7 +11,7 @@ uint32_t xmidi32_XMIDI_meta(struct sequence_state *st) {
     uint32_t data_len = read_vln(&vln_ptr);
 
     uint32_t header_len = (uint32_t)(vln_ptr - data_start);
-    uint32_t total_len = header_len + data_len;
+    uint32_t total_len = header_len + data_len + 2;
 
     if (meta_type == 0x2F) {
         reset_sequence(st);

@@ -8,15 +8,19 @@ static uint32_t g_sample_accum = 0;
 
 static void sdl_audio_callback(void *userdata, uint8_t *stream, int len) {
     (void)userdata;
+    int16_t *buf = (int16_t *)stream;
+    uint32_t samples = (uint32_t)len / 4;
     opl3_chip *chip = xmi_backend_get_chip();
+    uint32_t spt = g_samples_per_tick;
 
-    for (int i = 0; i < len; i += 4) {
+    uint32_t i;
+    for (i = 0; i < samples; i++) {
         g_sample_accum++;
-        if (g_sample_accum >= g_samples_per_tick) {
-            g_sample_accum -= g_samples_per_tick;
+        if (g_sample_accum >= spt) {
+            g_sample_accum -= spt;
             xmidi32_serve_driver();
         }
-        OPL3_GenerateStream(chip, (int16_t *)(stream + i), 1);
+        OPL3_GenerateResampled(chip, buf + i * 2);
     }
 }
 
@@ -26,13 +30,16 @@ int sdl_audio_init(uint32_t sample_rate) {
     SDL_AudioSpec want, have;
     SDL_zero(want);
     want.freq = (int)sample_rate;
-    want.format = AUDIO_S16;
+    want.format = AUDIO_S16SYS;
     want.channels = 2;
-    want.samples = 2048;
+    want.samples = 1024;
     want.callback = sdl_audio_callback;
     if (SDL_OpenAudio(&want, &have) < 0) {
+        fprintf(stderr, "SDL_OpenAudio failed: %s\n", SDL_GetError());
         return -1;
     }
+    fprintf(stderr, "SDL audio: freq=%d fmt=0x%X ch=%d samples=%d\n",
+            have.freq, have.format, have.channels, have.samples);
     SDL_PauseAudio(0);
     return 0;
 }
