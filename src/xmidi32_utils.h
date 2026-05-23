@@ -5,6 +5,8 @@
 #include <stddef.h>
 
 uint32_t read_be32(const uint8_t *p);
+uint16_t read_le_16(const uint8_t *p);
+uint32_t read_le_32(const uint8_t *p);
 
 uint32_t read_vln(const uint8_t **ptr);
 

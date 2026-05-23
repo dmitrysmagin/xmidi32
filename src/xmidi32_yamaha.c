@@ -3,6 +3,7 @@
 #include "xmidi32_backend.h"
 #include "xmidi32_yamaha.h"
 #include "xmidi32_yamaha_tables.h"
+#include "xmidi32_utils.h"
 
 #if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262
 
@@ -328,7 +329,7 @@ static void delete_LRU(void) {
 
     uint32_t toff = timb_offsets[lru_idx];
     uint8_t *timb_ptr = cache_base + toff;
-    uint16_t tsize = (uint16_t)timb_ptr[0] | ((uint16_t)timb_ptr[1] << 8);
+    uint16_t tsize = read_le_16(timb_ptr);
 
     uint8_t *dst = cache_base + toff;
     uint8_t *src = dst + tsize;
@@ -404,7 +405,7 @@ static void do_install_timbre(uint16_t gnum, const void *data) {
     if (data == NULL) return;
 
     const uint8_t *src = (const uint8_t *)data;
-    uint16_t tsize = (uint16_t)src[0] | ((uint16_t)src[1] << 8);
+    uint16_t tsize = read_le_16(src);
 
     while ((cache_end + tsize) > cache_size) delete_LRU();
 
@@ -724,8 +725,8 @@ static void update_voice(int32_t slot) {
         if (S_update[slot] & U_WS) {
             uint8_t ws_lo = (uint8_t)(S_ws_val[slot] & 0xFF);
             uint8_t ws_hi = (uint8_t)(S_ws_val[slot] >> 8);
-            update_reg(op_1[S_voice[slot]], 0xE0, ws_lo);
-            update_reg(op_0[S_voice[slot]], 0xE0, ws_hi);
+            update_reg(op_0[S_voice[slot]], 0xE0, ws_lo);
+            update_reg(op_1[S_voice[slot]], 0xE0, ws_hi);
             S_update[slot] &= (uint8_t)(~U_WS);
         }
 
@@ -916,7 +917,7 @@ void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
 #endif
     S_velocity[slot] = v;
 
-    uint32_t tsize = ((uint16_t)tptr[0] | ((uint16_t)tptr[1] << 8));
+    uint32_t tsize = read_le_16(tptr);
     S_timbre_off_l[slot] = (uint8_t)(off & 0xFF);
     S_timbre_off_h[slot] = (uint8_t)((off >> 8) & 0xFF);
 

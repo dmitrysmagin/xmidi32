@@ -5,6 +5,15 @@ uint32_t read_be32(const uint8_t *p) {
            ((uint32_t)p[2] << 8)  | (uint32_t)p[3];
 }
 
+uint16_t read_le_16(const uint8_t *p) {
+    return (uint16_t)p[0] | ((uint16_t)p[1] << 8);
+}
+
+uint32_t read_le_32(const uint8_t *p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+           ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
 uint32_t read_vln(const uint8_t **ptr) {
     const uint8_t *p = *ptr;
     uint32_t value = 0;

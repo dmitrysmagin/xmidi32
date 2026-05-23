@@ -1,5 +1,6 @@
 #include "timbre_bank.h"
 #include "src/xmidi32_timbre_internal.h"
+#include "src/xmidi32_utils.h"
 
 typedef struct {
     unsigned char patch;
@@ -15,10 +16,7 @@ static int parse_gtl(const unsigned char *data, unsigned int len) {
     while (pos + 6 <= len) {
         unsigned char patch = p[0];
         unsigned char bank = p[1];
-        unsigned int offset = (unsigned int)p[2]
-                            | ((unsigned int)p[3] << 8)
-                            | ((unsigned int)p[4] << 16)
-                            | ((unsigned int)p[5] << 24);
+        unsigned int offset = read_le_32(p + 2);
 
         if (bank == 0xFF) {
             break;
