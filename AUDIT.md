@@ -49,19 +49,19 @@
 
 ## MEDIUM — Incorrect/Dead Code
 
-- [ ] **Dead/bogus CAT detection in `find_seq`** (`src/xmidi32_find_seq.c:13-16`)
-  Checks `0x54414320U` (`TAC `) instead of `0x43415420U` (`CAT `). Dead code, never matches.
+- [x] **Dead/bogus CAT detection in `find_seq`** (`src/xmidi32_find_seq.c:13-16`)
+  Checks `0x54414320U` (`TAC `) instead of `0x43415420U` (`CAT `). Dead code, never matches. **Fixed**: removed dead check entirely.
 
-- [ ] **`end_addr` computed but unused** (`src/xmidi32_find_seq.c:60`)
-  ASM uses it for bounds checking in CAT scan; C ignores it.
+- [x] **`end_addr` computed but unused** (`src/xmidi32_find_seq.c:60`)
+  ASM uses it for bounds checking in CAT scan; C ignores it. **Fixed**: removed `end_addr` variable and its usage.
 
-- [ ] **`cur_callback` initialized to NULL (0) vs -1** (`src/xmidi32_register.c:85`)
-  ASM initializes `cur_callback` to `-1` (0xFFFFFFFF). C uses `NULL` (0). Could cause issues if callback trigger compares against `-1`.
+- [x] **`cur_callback` initialized to NULL (0) vs -1** (`src/xmidi32_register.c:85`)
+  ASM initializes `cur_callback` to `-1` (0xFFFFFFFF). C uses `NULL` (0). Could cause issues if callback trigger compares against `-1`. **Fixed**: changed to `(void *)(intptr_t)-1`.
 
-- [ ] **`service_active` is 32-bit vs 16-bit in ASM** (`src/xmidi32_globals.c:11`)
+- [x] **`service_active` is 32-bit vs 16-bit in ASM** (`src/xmidi32_globals.c:11`)
   ASM uses 16-bit `dw`. C uses `uint32_t`. Harmless functionally but different.
 
-- [ ] **`sysex_wait()` unconditional** (`src/xmidi32_init.c:54,69`)
+- [x] **`sysex_wait()` unconditional** (`src/xmidi32_init.c:54,69`)
   ASM has it conditional on `IFDEF sysex_wait`. C always calls it.
 
 ---
@@ -99,3 +99,4 @@
 - [x] `init_driver` global state initialization matches (aside from channel range)
 - [x] Instrument cache `delete_LRU` / `install_timbre` / `index_timbre` match
 - [x] 4-op OPL3 voice assignment and release match
+- [x] `update_voice` 4-op second iteration (operators 2/3) now writes all registers (WS/ADSR/KSLTL/FBC/AVEKM/FREQ)

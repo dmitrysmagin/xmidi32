@@ -82,7 +82,7 @@ void rewind_seq(HSEQUENCE sequence) {
         st->note_queue[i].chan = 0xFF;
     }
 
-    st->cur_callback = NULL;
+    st->cur_callback = (void *)(intptr_t)-1;
     st->interval_cnt = 0;
     st->note_count = 0;
     st->vol_percent = DEF_SYNTH_VOL;
