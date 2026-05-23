@@ -3,16 +3,17 @@
 #include "backend.h"
 #include "src/xmidi32_driver.h"
 
+static uint32_t sdl_accum = 0;
+
 static void sdl_audio_callback(void *userdata, uint8_t *stream, int len) {
     (void)userdata;
     int16_t *buf = (int16_t *)stream;
     uint32_t samples = (uint32_t)len / 4;
-    static uint32_t accum = 0;
     uint32_t spt = (uint32_t)((uint64_t)44100 * 8333ULL / 1000000ULL);
 
-    accum += samples;
-    while (accum >= spt) {
-        accum -= spt;
+    sdl_accum += samples;
+    while (sdl_accum >= spt) {
+        sdl_accum -= spt;
         xmidi32_serve_driver();
     }
 
@@ -24,19 +25,20 @@ static void sdl_audio_callback(void *userdata, uint8_t *stream, int len) {
 int sdl_audio_init(uint32_t sample_rate) {
     (void)sample_rate;
 
-    SDL_AudioSpec want, have;
+    SDL_AudioSpec want;
     SDL_zero(want);
     want.freq = 44100;
     want.format = AUDIO_S16SYS;
     want.channels = 2;
     want.samples = 1024;
     want.callback = sdl_audio_callback;
-    if (SDL_OpenAudio(&want, &have) < 0) {
+    if (SDL_OpenAudio(&want, NULL) < 0) {
         fprintf(stderr, "SDL_OpenAudio failed: %s\n", SDL_GetError());
         return -1;
     }
-    fprintf(stderr, "SDL audio: freq=%d fmt=0x%X ch=%d samples=%d\n",
-            have.freq, have.format, have.channels, have.samples);
+    fprintf(stderr, "SDL audio opened: freq=%d fmt=0x%X ch=%d\n",
+            want.freq, want.format, want.channels);
+    sdl_accum = 0;
     SDL_PauseAudio(0);
     return 0;
 }
