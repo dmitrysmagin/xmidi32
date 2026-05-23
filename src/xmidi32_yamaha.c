@@ -197,7 +197,7 @@ static const uint8_t op4_voice[6]  = { 0, 1, 2, 9,10,11 };
 
 #if SYNTH_TYPE == YMF262
 static const uint8_t carrier_01_data[18] = { 0,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
-static const uint8_t carrier_23_data[18] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+static const uint8_t carrier_23_data[18] = { 2,2,2,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2 };
 #endif
 
 #ifdef XMI_EMULATION
@@ -241,6 +241,18 @@ static void update_reg(uint8_t oper, uint8_t base, uint8_t val) {
     outport((uint16_t)(ADDR_STAT + bh * 2), bl);
     io_delay();
     outport((uint16_t)(ADDR_STAT + 1 + bh * 2), val);
+    io_delay();
+#endif
+}
+
+static void write_reg(uint8_t reg, uint8_t bank, uint8_t val) {
+#ifdef XMI_EMULATION
+    xmi_backend_opl_write(((uint16_t)bank << 8) | reg, val);
+#else
+    io_delay();
+    outport((uint16_t)(ADDR_STAT + bank * 2), reg);
+    io_delay();
+    outport((uint16_t)(ADDR_STAT + 1 + bank * 2), val);
     io_delay();
 #endif
 }
@@ -653,13 +665,13 @@ static void update_voice(int32_t slot) {
         uint8_t ncs = (uint8_t)(cur_shadow | conn);
         if (ncs != cur_shadow) {
             conn_shadow = ncs;
-            update_reg(0, 0x04, ncs);
+            write_reg(0x04, 1, ncs);
         }
     } else {
         uint8_t ncs = (uint8_t)(cur_shadow & ~conn);
         if (ncs != cur_shadow) {
             conn_shadow = ncs;
-            update_reg(0, 0x04, ncs);
+            write_reg(0x04, 1, ncs);
         }
     }
 #endif
@@ -1223,23 +1235,20 @@ uint32_t detect_device(uint32_t IO, uint32_t IRQ, uint32_t DMA, uint32_t DRQ) {
 
 void reset_synth(void) {
 #if SYNTH_TYPE == YMF262
-    update_reg(5, 0x01, 0x01);
-    update_reg(4, 0x01, 0x00);
+    write_reg(0x05, 1, 0x01);
+    write_reg(0x04, 1, 0x00);
     conn_shadow = 0;
 #endif
 
-    uint8_t bx = 1;
-    do {
-        update_reg(bx, 0x00, array0_init[bx - 1]);
-        bx++;
-    } while (bx != 0xF5);
+    uint8_t bx;
+    for (bx = 1; bx <= 0xF5; bx++) {
+        write_reg(bx, 0, array0_init[bx - 1]);
+    }
 
 #if SYNTH_TYPE == YMF262
-    bx = 1;
-    do {
-        update_reg(bx, 0x01, array1_init[bx - 1]);
-        bx++;
-    } while (bx != 0xF5);
+    for (bx = 1; bx <= 0xF5; bx++) {
+        write_reg(bx, 1, array1_init[bx - 1]);
+    }
 #endif
 }
 
@@ -1275,7 +1284,7 @@ void init_synth(void) {
 
 void shutdown_synth(void) {
 #if SYNTH_TYPE == YMF262
-    update_reg(5, 0x01, 0x00);
+    write_reg(0x05, 1, 0x00);
 #endif
 }
 
