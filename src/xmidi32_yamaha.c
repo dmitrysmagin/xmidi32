@@ -433,10 +433,13 @@ static void do_install_timbre(uint16_t gnum, const void *data) {
     timb_offsets[slot] = off;
     cache_end += tsize;
 
+    printf("INSTALL timb_idx=%d bank=%d patch=%d\n", slot, bank, num);
+
     int32_t ch;
     for (ch = 0; ch < (int32_t)NUM_CHANS_MAX; ch++) {
         if (MIDI_program[ch] == num && MIDI_bank[ch] == bank) {
             MIDI_timbre[ch] = (int8_t)slot;
+            printf("  -> matches chan=%d prog=%d bank=%d\n", ch, num, bank);
         }
     }
 }
@@ -955,9 +958,27 @@ static void update_priority(void) {
 
 void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
     if (chan >= NUM_CHANS_MAX) return;
-    if (MIDI_timbre[chan] < 0) return;
 
-    int32_t timb_idx = MIDI_timbre[chan];
+    int32_t timb_idx;
+    if (chan == 9) {
+        timb_idx = RBS_timbres[note];
+        if (timb_idx < 0) {
+            uint16_t gnum = (0x7F << 8) | (note & 0x7F);
+            timb_idx = (int32_t)index_timbre(gnum);
+            RBS_timbres[note] = (int8_t)timb_idx;
+            if (timb_idx >= 0)
+                printf("DRUM note=%d timb_idx=%d bank=127 patch=%d\n", note, timb_idx, note);
+            else
+                printf("DRUM note=%d MISSING (bank=127 patch=%d not installed)\n", note, note);
+        }
+        if (timb_idx < 0) return;
+    } else {
+        if (MIDI_timbre[chan] < 0) return;
+        timb_idx = MIDI_timbre[chan];
+    }
+    printf("NOTE_ON chan=%d note=%d vel=%d timb_idx=%d bank=%d patch=%d\n",
+           chan, note, vel, timb_idx, timb_bank[timb_idx], timb_num[timb_idx]);
+
     uint32_t off = timb_offsets[timb_idx];
     uint8_t *tptr = cache_base + off;
 
@@ -1133,6 +1154,7 @@ void yamaha_program_change(uint32_t chan, uint32_t program) {
     uint16_t gnum = (uint16_t)((MIDI_bank[chan] << 8) | (program & 0xFF));
     uint32_t idx = index_timbre(gnum);
     MIDI_timbre[chan] = (int8_t)idx;
+    printf("PROG_CHANGE chan=%d prog=%d bank=%d timb_idx=%d\n", chan, program, MIDI_bank[chan], idx);
 }
 
 void yamaha_pitch_bend(uint32_t chan, uint32_t pitch_l, uint32_t pitch_h) {
