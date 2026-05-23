@@ -11,7 +11,7 @@
 #define SPKR    4
 
 #ifndef SYNTH_TYPE
-#define SYNTH_TYPE YM3812
+#define SYNTH_TYPE YMF262
 #endif
 
 #if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262

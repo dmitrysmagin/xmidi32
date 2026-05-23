@@ -659,75 +659,110 @@ static void update_voice(int32_t slot) {
 #endif
 
     do {
-        if (arr) {
+        int32_t vi = S_voice[slot];
 #if SYNTH_TYPE == YMF262
-            int32_t vi2 = S_voice[slot] + 3;
-            uint8_t vop0 = op_0[vi2];
-            uint8_t vop1 = op_1[vi2];
-            (void)vop0; (void)vop1;
+        int32_t vi_pair = arr ? (vi + 3) : vi;
+        uint8_t op_a = op_0[vi_pair];
+        uint8_t op_b = op_1[vi_pair];
+#else
+        (void)vi;
+        uint8_t op_a = op_0[vi];
+        uint8_t op_b = op_1[vi];
 #endif
-        } else {
-            (void)S_voice[slot];
-        }
 
         if (S_update[slot] & U_AVEKM) {
             int32_t ch = S_channel[slot] & 0x0F;
             uint8_t am_vib = (MIDI_mod[ch] >= 64) ? 0x40 : 0x00;
 
-            if (!arr) {
-                uint8_t m0 = S_m0_val[slot];
-                uint8_t reg0 = (uint8_t)(((m0 >> 4) & 0x0F) | am_vib | S_AVEKM_0[slot]);
-                update_reg(op_0[S_voice[slot]], 0x20, reg0);
-
-                uint8_t m1 = S_m1_val[slot];
-                uint8_t reg1 = (uint8_t)(((m1 >> 4) & 0x0F) | am_vib | S_AVEKM_1[slot]);
-                update_reg(op_1[S_voice[slot]], 0x20, reg1);
-            } else {
 #if SYNTH_TYPE == YMF262
+            if (arr) {
                 uint8_t m2 = S_m2_val[slot];
                 uint8_t r2 = (uint8_t)(((m2 >> 4) & 0x0F) | am_vib | S_AVEKM_2[slot]);
-                update_reg(op_0[S_voice[slot] + 3], 0x20, r2);
+                update_reg(op_a, 0x20, r2);
 
                 uint8_t m3 = S_m3_val[slot];
                 uint8_t r3 = (uint8_t)(((m3 >> 4) & 0x0F) | am_vib | S_AVEKM_3[slot]);
-                update_reg(op_1[S_voice[slot] + 3], 0x20, r3);
+                update_reg(op_b, 0x20, r3);
+            } else
 #endif
+            {
+                uint8_t m0 = S_m0_val[slot];
+                uint8_t reg0 = (uint8_t)(((m0 >> 4) & 0x0F) | am_vib | S_AVEKM_0[slot]);
+                update_reg(op_a, 0x20, reg0);
+
+                uint8_t m1 = S_m1_val[slot];
+                uint8_t reg1 = (uint8_t)(((m1 >> 4) & 0x0F) | am_vib | S_AVEKM_1[slot]);
+                update_reg(op_b, 0x20, reg1);
             }
-            S_update[slot] &= (uint8_t)(~U_AVEKM);
         }
 
         if (S_update[slot] & U_KSLTL) {
-            uint8_t v0_lev = (uint8_t)((S_v0_val[slot] >> 2) & 0x3F);
-            if (S_scale_01[slot] & 1) {
-                v0_lev = (uint8_t)((((uint32_t)v0_lev * vol) + 126) / 127);
-            }
-            uint8_t att0 = (uint8_t)(~(v0_lev) & 0x3F);
-            update_reg(op_0[S_voice[slot]], 0x40, (uint8_t)(att0 | S_KSLTL_0[slot]));
+#if SYNTH_TYPE == YMF262
+            if (arr) {
+                uint8_t v2_lev = (uint8_t)((S_v2_val[slot] >> 2) & 0x3F);
+                if (S_scale_23[slot] & 1) {
+                    v2_lev = (uint8_t)((((uint32_t)v2_lev * vol) + 126) / 127);
+                }
+                uint8_t att2 = (uint8_t)(~(v2_lev) & 0x3F);
+                update_reg(op_a, 0x40, (uint8_t)(att2 | S_KSLTL_2[slot]));
 
-            uint8_t v1_lev = (uint8_t)((S_v1_val[slot] >> 2) & 0x3F);
-            if (S_scale_01[slot] & 2) {
-                v1_lev = (uint8_t)((((uint32_t)v1_lev * vol) + 126) / 127);
-            }
-            uint8_t att1 = (uint8_t)(~(v1_lev) & 0x3F);
-            update_reg(op_1[S_voice[slot]], 0x40, (uint8_t)(att1 | S_KSLTL_1[slot]));
+                uint8_t v3_lev = (uint8_t)((S_v3_val[slot] >> 2) & 0x3F);
+                if (S_scale_23[slot] & 2) {
+                    v3_lev = (uint8_t)((((uint32_t)v3_lev * vol) + 126) / 127);
+                }
+                uint8_t att3 = (uint8_t)(~(v3_lev) & 0x3F);
+                update_reg(op_b, 0x40, (uint8_t)(att3 | S_KSLTL_3[slot]));
+            } else
+#endif
+            {
+                uint8_t v0_lev = (uint8_t)((S_v0_val[slot] >> 2) & 0x3F);
+                if (S_scale_01[slot] & 1) {
+                    v0_lev = (uint8_t)((((uint32_t)v0_lev * vol) + 126) / 127);
+                }
+                uint8_t att0 = (uint8_t)(~(v0_lev) & 0x3F);
+                update_reg(op_a, 0x40, (uint8_t)(att0 | S_KSLTL_0[slot]));
 
-            S_update[slot] &= (uint8_t)(~U_KSLTL);
+                uint8_t v1_lev = (uint8_t)((S_v1_val[slot] >> 2) & 0x3F);
+                if (S_scale_01[slot] & 2) {
+                    v1_lev = (uint8_t)((((uint32_t)v1_lev * vol) + 126) / 127);
+                }
+                uint8_t att1 = (uint8_t)(~(v1_lev) & 0x3F);
+                update_reg(op_b, 0x40, (uint8_t)(att1 | S_KSLTL_1[slot]));
+            }
         }
 
         if (S_update[slot] & U_ADSR) {
-            update_reg(op_0[S_voice[slot]], 0x60, S_AD_0[slot]);
-            update_reg(op_1[S_voice[slot]], 0x60, S_AD_1[slot]);
-            update_reg(op_0[S_voice[slot]], 0x80, S_SR_0[slot]);
-            update_reg(op_1[S_voice[slot]], 0x80, S_SR_1[slot]);
-            S_update[slot] &= (uint8_t)(~U_ADSR);
+#if SYNTH_TYPE == YMF262
+            if (arr) {
+                update_reg(op_a, 0x60, S_AD_2[slot]);
+                update_reg(op_b, 0x60, S_AD_3[slot]);
+                update_reg(op_a, 0x80, S_SR_2[slot]);
+                update_reg(op_b, 0x80, S_SR_3[slot]);
+            } else
+#endif
+            {
+                update_reg(op_a, 0x60, S_AD_0[slot]);
+                update_reg(op_b, 0x60, S_AD_1[slot]);
+                update_reg(op_a, 0x80, S_SR_0[slot]);
+                update_reg(op_b, 0x80, S_SR_1[slot]);
+            }
         }
 
         if (S_update[slot] & U_WS) {
-            uint8_t ws_lo = (uint8_t)(S_ws_val[slot] & 0xFF);
-            uint8_t ws_hi = (uint8_t)(S_ws_val[slot] >> 8);
-            update_reg(op_0[S_voice[slot]], 0xE0, ws_lo);
-            update_reg(op_1[S_voice[slot]], 0xE0, ws_hi);
-            S_update[slot] &= (uint8_t)(~U_WS);
+#if SYNTH_TYPE == YMF262
+            if (arr) {
+                uint8_t ws_lo = (uint8_t)(S_ws_val_2[slot] & 0xFF);
+                uint8_t ws_hi = (uint8_t)(S_ws_val_2[slot] >> 8);
+                update_reg(op_a, 0xE0, ws_lo);
+                update_reg(op_b, 0xE0, ws_hi);
+            } else
+#endif
+            {
+                uint8_t ws_lo = (uint8_t)(S_ws_val[slot] & 0xFF);
+                uint8_t ws_hi = (uint8_t)(S_ws_val[slot] >> 8);
+                update_reg(op_a, 0xE0, ws_lo);
+                update_reg(op_b, 0xE0, ws_hi);
+            }
         }
 
         if (S_update[slot] & U_FBC) {
@@ -740,17 +775,15 @@ static void update_voice(int32_t slot) {
                 fbc &= LEFT_MASK;
             }
 #endif
-            send_byte((uint8_t)S_voice[slot], 0xC0, fbc);
-            S_update[slot] &= (uint8_t)(~U_FBC);
+            send_byte((uint8_t)(arr ? (vi + 3) : vi), 0xC0, fbc);
         }
 
         if (S_update[slot] & U_FREQ) {
+#if SYNTH_TYPE == YMF262
             if (arr) {
-                S_update[slot] &= (uint8_t)(~U_FREQ);
-            } else {
                 if (!(S_BLOCK[slot] & 0x20)) {
                     uint8_t kb = (uint8_t)(S_KBF_shadow[slot] & 0xDF);
-                    send_byte((uint8_t)S_voice[slot], 0xB0, kb);
+                    send_byte((uint8_t)(vi + 3), 0xB0, kb);
                 } else {
                     int32_t ch = S_channel[slot] & 0x0F;
                     int32_t pb = (((int32_t)MIDI_pitch_h[ch] << 9) | ((int32_t)MIDI_pitch_l[ch] << 2)) - 0x2000;
@@ -783,13 +816,55 @@ static void update_voice(int32_t slot) {
 
                     S_KBF_shadow[slot] = (uint8_t)((blk_fnum & 0xDF) | (S_BLOCK[slot] & 0x20));
 
-                    send_byte((uint8_t)S_voice[slot], 0xA0, fnum_lo);
-                    send_byte((uint8_t)S_voice[slot], 0xB0, S_KBF_shadow[slot]);
+                    send_byte((uint8_t)(vi + 3), 0xA0, fnum_lo);
+                    send_byte((uint8_t)(vi + 3), 0xB0, S_KBF_shadow[slot]);
                 }
-                S_update[slot] &= (uint8_t)(~U_FREQ);
+            } else
+#endif
+            {
+                if (!(S_BLOCK[slot] & 0x20)) {
+                    uint8_t kb = (uint8_t)(S_KBF_shadow[slot] & 0xDF);
+                    send_byte((uint8_t)vi, 0xB0, kb);
+                } else {
+                    int32_t ch = S_channel[slot] & 0x0F;
+                    int32_t pb = (((int32_t)MIDI_pitch_h[ch] << 9) | ((int32_t)MIDI_pitch_l[ch] << 2)) - 0x2000;
+                    int32_t range = DEF_PITCH_RANGE;
+                    pb = (pb * range) >> 5;
+
+                    int32_t note = S_note[slot] + S_transpose[slot] - 24;
+                    while (note < 0) note += 12;
+                    while (note >= 96) note -= 12;
+
+                    note = (note << 4) + 8;
+
+                    note += pb;
+                    note -= 192;
+                    while (note < 0) note += 192;
+                    while (note >= 1536) note -= 192;
+
+                    int32_t idx = note >> 4;
+                    uint8_t htone = note_halftone[idx];
+                    int32_t tbl_idx = ((htone << 5) | (note & 0x0F)) >> 1;
+                    uint16_t fval = freq_table[tbl_idx];
+
+                    int32_t oct = note_octave[idx];
+                    oct--;
+                    if (fval >= 0x8000) oct++;
+                    if (oct < 0) { oct++; fval >>= 1; }
+
+                    uint8_t blk_fnum = (uint8_t)((((uint8_t)oct << 2) & 0x1C) | ((fval >> 8) & 3));
+                    uint8_t fnum_lo  = (uint8_t)(fval & 0xFF);
+
+                    S_KBF_shadow[slot] = (uint8_t)((blk_fnum & 0xDF) | (S_BLOCK[slot] & 0x20));
+
+                    send_byte((uint8_t)vi, 0xA0, fnum_lo);
+                    send_byte((uint8_t)vi, 0xB0, S_KBF_shadow[slot]);
+                }
             }
         }
     } while (arr-- > 0);
+
+    S_update[slot] &= (uint8_t)(~(U_AVEKM | U_KSLTL | U_ADSR | U_WS | U_FBC | U_FREQ));
 }
 
 static void update_priority(void) {
