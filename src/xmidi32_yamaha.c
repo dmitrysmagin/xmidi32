@@ -864,6 +864,7 @@ static void update_priority(void) {
 
 void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
     if (chan >= NUM_CHANS_MAX) return;
+    if (chan == 0) return;
 
     int32_t timb_idx;
     if (chan == 9) {
@@ -997,10 +998,9 @@ void yamaha_controller(uint32_t chan, uint32_t ctrl, uint32_t val) {
             }
             break;
         case 96:
-            break;
         case 97:
             break;
-        case 98:
+        case VOICE_PROTECT:
             MIDI_vprot[chan] = (uint8_t)val;
             break;
         case TIMBRE_PROTECT:
@@ -1037,6 +1037,15 @@ void yamaha_controller(uint32_t chan, uint32_t ctrl, uint32_t val) {
                 }
             }
             break;
+        case ALL_NOTES_OFF: {
+            int32_t si;
+            for (si = 0; si < (int32_t)NUM_SLOTS_MAX; si++) {
+                if (S_status[si] != SLOT_KEYON) continue;
+                if (S_channel[si] != chan) continue;
+                yamaha_note_off(chan, S_keynum[si]);
+            }
+            break;
+        }
         default:
             break;
     }
@@ -1079,6 +1088,8 @@ void yamaha_pitch_bend(uint32_t chan, uint32_t pitch_l, uint32_t pitch_h) {
 void send_MIDI_message(uint32_t status, uint32_t d1, uint32_t d2) {
     uint32_t chan = status & 0x0F;
     uint32_t type = status & 0xF0;
+
+    printf("CH: %d, EV: %02x, D1: %02x, D2: %02x\n", chan, type, d1, d2);
 
     if (type == 0x80 || (type == 0x90 && d2 == 0)) {
         yamaha_note_off(chan, d1);
