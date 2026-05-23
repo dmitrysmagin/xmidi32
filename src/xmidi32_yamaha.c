@@ -7,9 +7,7 @@
 
 #if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262
 
-#ifdef XMI_EMULATION
 void xmi_backend_opl_write(uint16_t reg, uint8_t val);
-#endif
 
 #define MAX_TIMBS     192
 #define DEF_TC_SIZE   3584
@@ -62,7 +60,7 @@ void xmi_backend_opl_write(uint16_t reg, uint8_t val);
 #define VEL_TRUE  0
 #endif
 
-#pragma pack(push, 1)
+#if 0
 struct BNK_timbre  {
     uint16_t B_length;
     int8_t   B_transpose;
@@ -77,7 +75,7 @@ struct BNK_timbre  {
     uint8_t  B_car_AD;
     uint8_t  B_car_SR;
     uint8_t  B_car_WS;
-} __attribute__((packed));
+};
 
 struct OPL3BNK_timbre {
     struct BNK_timbre base;
@@ -92,16 +90,14 @@ struct OPL3BNK_timbre {
     uint8_t  O_car_AD;
     uint8_t  O_car_SR;
     uint8_t  O_car_WS;
-} __attribute__((packed));
-#pragma pack(pop)
+};
+#endif
 
 static void release_voice(int32_t slot);
 static void update_voice(int32_t slot);
 static uint32_t index_timbre(uint16_t gnum);
 static void delete_LRU(void);
 
-static uint32_t DATA_OUT;
-static uint32_t ADDR_STAT;
 static uint32_t note_event_ctr;
 static uint32_t timb_hist[MAX_TIMBS];
 static uint32_t timb_offsets[MAX_TIMBS];
@@ -200,123 +196,21 @@ static const uint8_t carrier_01_data[18] = { 0,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 static const uint8_t carrier_23_data[18] = { 2,2,2,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2 };
 #endif
 
-#ifdef XMI_EMULATION
-static inline void outport(uint16_t port, uint8_t val) { (void)port; (void)val; }
-static inline uint8_t inport(uint16_t port) { (void)port; return 0; }
-#else
-static inline void outport(uint16_t port, uint8_t val) {
-#if defined(_MSC_VER)
-    _outp((unsigned short)port, (int)val);
-#elif defined(__GNUC__) || defined(__clang__)
-    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"((uint16_t)port));
-#endif
-}
-
-static inline uint8_t inport(uint16_t port) {
-#if defined(_MSC_VER)
-    return (uint8_t)_inp((unsigned short)port);
-#elif defined(__GNUC__) || defined(__clang__)
-    uint8_t val;
-    __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"((uint16_t)port));
-    return val;
-#endif
-}
-#endif
-
-#ifndef XMI_EMULATION
-static void io_delay(void) {
-    volatile int i;
-    for (i = 0; i < 6; i++) (void)0;
-}
-#endif
-
 static void update_reg(uint8_t oper, uint8_t base, uint8_t val) {
     uint8_t bh = op_array[oper];
     uint8_t bl = (uint8_t)((op_index[oper] + base) & 0xFF);
-
-#ifdef XMI_EMULATION
     xmi_backend_opl_write(((uint16_t)bh << 8) | bl, val);
-#else
-    io_delay();
-    outport((uint16_t)(ADDR_STAT + bh * 2), bl);
-    io_delay();
-    outport((uint16_t)(ADDR_STAT + 1 + bh * 2), val);
-    io_delay();
-#endif
 }
 
 static void write_reg(uint8_t reg, uint8_t bank, uint8_t val) {
-#ifdef XMI_EMULATION
     xmi_backend_opl_write(((uint16_t)bank << 8) | reg, val);
-#else
-    io_delay();
-    outport((uint16_t)(ADDR_STAT + bank * 2), reg);
-    io_delay();
-    outport((uint16_t)(ADDR_STAT + 1 + bank * 2), val);
-    io_delay();
-#endif
 }
 
 static void send_byte(uint8_t voice, uint8_t base, uint8_t val) {
     uint8_t bh = voice_array[voice];
     uint8_t bl = (uint8_t)((voice_num[voice] + base) & 0xFF);
-
-#ifdef XMI_EMULATION
     xmi_backend_opl_write(((uint16_t)bh << 8) | bl, val);
-#else
-    io_delay();
-    outport((uint16_t)(ADDR_STAT + bh * 2), bl);
-    io_delay();
-    outport((uint16_t)(ADDR_STAT + 1 + bh * 2), val);
-    io_delay();
-#endif
 }
-
-#ifndef XMI_EMULATION
-static void detect_send(uint8_t address, uint8_t data) {
-    io_delay();
-    outport((uint16_t)ADDR_STAT, address);
-    io_delay();
-    outport((uint16_t)DATA_OUT, data);
-    io_delay();
-    outport((uint16_t)ADDR_STAT, 4);
-    io_delay();
-    outport((uint16_t)DATA_OUT, 0x60);
-    io_delay();
-    outport((uint16_t)ADDR_STAT, 4);
-    io_delay();
-    outport((uint16_t)DATA_OUT, 0x80);
-}
-
-static uint8_t read_status(void) {
-    io_delay();
-    return inport((uint16_t)ADDR_STAT);
-}
-#endif
-
-#ifdef XMI_EMULATION
-static int32_t detect_Adlib(void) { return 1; }
-#else
-static int32_t detect_Adlib(void) {
-    detect_send(4, 0x60);
-    detect_send(4, 0x80);
-    uint8_t s1 = read_status();
-    detect_send(2, 0xFF);
-    detect_send(4, 0x21);
-    int32_t i;
-    for (i = 0; i < 200; i++) {
-        if (read_status() != s1) break;
-    }
-    uint8_t s2 = read_status();
-    detect_send(4, 0x60);
-    detect_send(4, 0x80);
-    s1 &= 0xE0;
-    s2 &= 0xE0;
-    if (s1 != 0) return 0;
-    if (s2 != 0xC0) return 0;
-    return 1;
-}
-#endif
 
 static uint32_t index_timbre(uint16_t gnum) {
     uint8_t num = (uint8_t)(gnum & 0xFF);
@@ -445,13 +339,13 @@ static void do_install_timbre(uint16_t gnum, const void *data) {
     timb_offsets[slot] = off;
     cache_end += tsize;
 
-    printf("INSTALL timb_idx=%d bank=%d patch=%d\n", slot, bank, num);
+    //printf("INSTALL timb_idx=%d bank=%d patch=%d\n", slot, bank, num);
 
     int32_t ch;
     for (ch = 0; ch < (int32_t)NUM_CHANS_MAX; ch++) {
         if (MIDI_program[ch] == num && MIDI_bank[ch] == bank) {
             MIDI_timbre[ch] = (int8_t)slot;
-            printf("  -> matches chan=%d prog=%d bank=%d\n", ch, num, bank);
+            //printf("  -> matches chan=%d prog=%d bank=%d\n", ch, num, bank);
         }
     }
 }
@@ -978,18 +872,18 @@ void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
             uint16_t gnum = (0x7F << 8) | (note & 0x7F);
             timb_idx = (int32_t)index_timbre(gnum);
             RBS_timbres[note] = (int8_t)timb_idx;
-            if (timb_idx >= 0)
+            /*if (timb_idx >= 0)
                 printf("DRUM note=%d timb_idx=%d bank=127 patch=%d\n", note, timb_idx, note);
             else
-                printf("DRUM note=%d MISSING (bank=127 patch=%d not installed)\n", note, note);
+                printf("DRUM note=%d MISSING (bank=127 patch=%d not installed)\n", note, note);*/
         }
         if (timb_idx < 0) return;
     } else {
         if (MIDI_timbre[chan] < 0) return;
         timb_idx = MIDI_timbre[chan];
     }
-    printf("NOTE_ON chan=%d note=%d vel=%d timb_idx=%d bank=%d patch=%d\n",
-           chan, note, vel, timb_idx, timb_bank[timb_idx], timb_num[timb_idx]);
+    //printf("NOTE_ON chan=%d note=%d vel=%d timb_idx=%d bank=%d patch=%d\n",
+    //       chan, note, vel, timb_idx, timb_bank[timb_idx], timb_num[timb_idx]);
 
     uint32_t off = timb_offsets[timb_idx];
     uint8_t *tptr = cache_base + off;
@@ -1166,7 +1060,7 @@ void yamaha_program_change(uint32_t chan, uint32_t program) {
     uint16_t gnum = (uint16_t)((MIDI_bank[chan] << 8) | (program & 0xFF));
     uint32_t idx = index_timbre(gnum);
     MIDI_timbre[chan] = (int8_t)idx;
-    printf("PROG_CHANGE chan=%d prog=%d bank=%d timb_idx=%d\n", chan, program, MIDI_bank[chan], idx);
+    //printf("PROG_CHANGE chan=%d prog=%d bank=%d timb_idx=%d\n", chan, program, MIDI_bank[chan], idx);
 }
 
 void yamaha_pitch_bend(uint32_t chan, uint32_t pitch_l, uint32_t pitch_h) {
@@ -1214,23 +1108,12 @@ void send_MIDI_sysex(const uint8_t *data, uint32_t size) {
 }
 
 void set_IO_parms(uint32_t IO, uint32_t IRQ, uint32_t DMA, uint32_t DRQ) {
-    (void)IRQ; (void)DMA; (void)DRQ;
-    ADDR_STAT = IO;
-    DATA_OUT  = IO + 1;
+    (void)IO; (void)IRQ; (void)DMA; (void)DRQ;
 }
 
 uint32_t detect_device(uint32_t IO, uint32_t IRQ, uint32_t DMA, uint32_t DRQ) {
-    (void)IRQ; (void)DMA; (void)DRQ;
-    uint32_t saved_DATA = DATA_OUT;
-    uint32_t saved_ADDR = ADDR_STAT;
-    ADDR_STAT = IO;
-    DATA_OUT  = IO + 1;
-
-    int32_t res = detect_Adlib();
-
-    DATA_OUT  = saved_DATA;
-    ADDR_STAT = saved_ADDR;
-    return res ? 1 : 0;
+    (void)IO; (void)IRQ; (void)DMA; (void)DRQ;
+    return 1;
 }
 
 void reset_synth(void) {
