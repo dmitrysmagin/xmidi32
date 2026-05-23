@@ -5,13 +5,14 @@
 uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
                               uint32_t ctrl, uint32_t val) {
     if (st->chan_indirect[log_chan] != -1) {
-        val = (uint32_t)(uint8_t)st->chan_indirect[log_chan];
+        uint32_t idx = (uint8_t)st->chan_indirect[log_chan];
+        val = st->ctrl_ptr[idx];
         st->chan_indirect[log_chan] = -1;
     }
 
     uint8_t hash = ctrl_hash[ctrl & 0x7F];
     if (hash != 0xFF) {
-        global_controls.PV[log_chan] = (uint8_t)val;
+        ((uint8_t *)&global_controls)[hash * NUM_CHANS + log_chan] = (uint8_t)val;
         ((uint8_t *)&(st)->chan_controls)[hash * NUM_CHANS + log_chan] = (uint8_t)val;
     }
 
@@ -65,11 +66,11 @@ uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
         }
         if (slot == 0) return 3;
         slot--;
-        if (st->FOR_loop_cnt[slot] == 0) {
+        st->FOR_loop_cnt[slot]--;
+        if (st->FOR_loop_cnt[slot] <= 0) {
             st->FOR_loop_cnt[slot] = -1;
             return 3;
         }
-        st->FOR_loop_cnt[slot]--;
         st->EVNT_ptr = st->FOR_ptrs[slot];
         return 3;
     }

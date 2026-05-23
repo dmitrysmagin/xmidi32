@@ -8,22 +8,22 @@
 
 ## CRITICAL Bugs (affect correct playback)
 
-- [ ] **NEXT_LOOP off-by-one** (`src/xmidi32_control.c:68-73`)
+- [x] **NEXT_LOOP off-by-one** (`src/xmidi32_control.c:68-73`)
   ASM decrements counter **first**, then checks `jnz` (jump if not zero). C checks for zero **first**, then decrements. Result: counter `val` gives `val+1` iterations instead of `val`. Fix: decrement first, then check, and only jump back if still > 0.
 
-- [ ] **INDIRECT_C_PFX uses index as value** (`src/xmidi32_control.c:7-9`)
+- [x] **INDIRECT_C_PFX uses index as value** (`src/xmidi32_control.c:7-9`)
   ASM stores an **index** into `chan_indirect[]`, then on the next controller call looks up `ctrl_ptr[index]` for the actual value. C uses the stored index **directly as the value**, bypassing the `ctrl_ptr` indirection. Fix: `val = st->ctrl_ptr[(uint8_t)st->chan_indirect[log_chan]];`
 
-- [ ] **global_controls.PV written for ALL controllers** (`src/xmidi32_control.c:14`)
+- [x] **global_controls.PV written for ALL controllers** (`src/xmidi32_control.c:14`)
   ASM writes to the hash-offsetted field (`PV`, `MODUL`, `PAN`, etc.) based on which controller triggered. C always writes to `global_controls.PV[log_chan]`. Fix: use `GCTL(log_chan, hash)` or equivalent byte-offset write.
 
-- [ ] **Gradient accumulators store wrong value** (`src/xmidi32_serve.c:195,217`)
+- [x] **Gradient accumulators store wrong value** (`src/xmidi32_serve.c:195,217`)
   ASM stores the **remainder** after subtracting `steps * period`. C stores the **full initial value** (`tempo_grad` / `vol_grad`). Fix: store `tempo_rem` / `vol_rem` instead.
 
-- [ ] **Gradient accumulators not updated when steps==0** (`src/xmidi32_serve.c:194,216`)
+- [x] **Gradient accumulators not updated when steps==0** (`src/xmidi32_serve.c:194,216`)
   ASM always updates accum. C only updates inside `if (steps != 0)`. Fix: move accum update outside the `if`.
 
-- [ ] **Volume gradient `> 0` instead of `>= period`** (`src/xmidi32_serve.c:212`)
+- [x] **Volume gradient `> 0` instead of `>= period`** (`src/xmidi32_serve.c:212`)
   ASM uses `jge` (signed `>= 0`) after `sub eax,period`, which is `>= period` in C. C uses `> 0`. When `vol_rem` is between 1 and `period-1`, ASM does 0 steps (correct), C does 1 step (wrong). Fix: change `while (vol_rem > 0)` to `while (vol_rem >= st->vol_period)`.
 
 ---

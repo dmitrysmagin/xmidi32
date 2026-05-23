@@ -187,45 +187,41 @@ check_beat:
             int32_t tempo_grad = st->tempo_accum + (QUANT_TIME / 100);
             int32_t steps = 0;
             int32_t tempo_rem = tempo_grad;
-        while (tempo_rem >= st->tempo_percent) {
-            steps++;
-            tempo_rem -= st->tempo_period;
-        }
-            if (steps != 0) {
-                st->tempo_accum = tempo_grad;
-                int32_t new_tempo = st->tempo_percent;
-                if (new_tempo < st->tempo_target) {
-                    new_tempo += steps;
-                    if (new_tempo > st->tempo_target) new_tempo = st->tempo_target;
-                } else {
-                    new_tempo -= steps;
-                    if (new_tempo < st->tempo_target) new_tempo = st->tempo_target;
-                }
-                st->tempo_percent = new_tempo;
+            do {
+                steps++;
+                tempo_rem -= st->tempo_period;
+            } while (tempo_rem >= 0);
+            st->tempo_accum = tempo_rem + st->tempo_period;
+            int32_t new_tempo = st->tempo_percent;
+            if (new_tempo < st->tempo_target) {
+                new_tempo += steps;
+                if (new_tempo > st->tempo_target) new_tempo = st->tempo_target;
+            } else {
+                new_tempo -= steps;
+                if (new_tempo < st->tempo_target) new_tempo = st->tempo_target;
             }
+            st->tempo_percent = new_tempo;
         }
 
         if (st->vol_percent != st->vol_target) {
             int32_t vol_grad = st->vol_accum + (QUANT_TIME / 100);
             int32_t steps = 0;
             int32_t vol_rem = vol_grad;
-            while (vol_rem > 0) {
+            do {
                 steps++;
                 vol_rem -= st->vol_period;
+            } while (vol_rem >= 0);
+            st->vol_accum = vol_rem + st->vol_period;
+            int32_t new_vol = st->vol_percent;
+            if (new_vol < st->vol_target) {
+                new_vol += steps;
+                if (new_vol > st->vol_target) new_vol = st->vol_target;
+            } else {
+                new_vol -= steps;
+                if (new_vol < st->vol_target) new_vol = st->vol_target;
             }
-            if (steps != 0) {
-                st->vol_accum = vol_grad;
-                int32_t new_vol = st->vol_percent;
-                if (new_vol < st->vol_target) {
-                    new_vol += steps;
-                    if (new_vol > st->vol_target) new_vol = st->vol_target;
-                } else {
-                    new_vol -= steps;
-                    if (new_vol < st->vol_target) new_vol = st->vol_target;
-                }
-                st->vol_percent = new_vol;
-                xmidi32_XMIDI_volume(st);
-            }
+            st->vol_percent = new_vol;
+            xmidi32_XMIDI_volume(st);
         }
     }
 
