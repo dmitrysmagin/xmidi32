@@ -81,7 +81,7 @@ int32_t xmidi32_get_control_val(HSEQUENCE sequence, uint32_t chan, uint32_t ctrl
     uint8_t hash = ctrl_hash[ctrl & 0x7F];
     if (hash == 0xFF) return -1;
 
-    uint32_t idx = hash * NUM_CHANS + (chan - 1);
+    uint32_t idx = hash + (chan - 1);
     return (int32_t)(int8_t)((uint8_t *)&st->chan_controls)[idx];
 }
 

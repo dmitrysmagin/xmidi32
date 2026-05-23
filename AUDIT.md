@@ -69,19 +69,19 @@
 ## LOW — Design Differences (not bugs)
 
 - [ ] **Channel range expansion (2-10 → 1-16)**
-  Intentional change for OPL3/16-channel MIDI support.
+  Intentional change for OPL3/16-channel MIDI support. Cannot change without breaking OPL3.
 
-- [ ] **Controller renumbering**
-  XMIDI controllers deliberately renumbered in the C port.
+- [x] **Controller renumbering**
+  XMIDI controllers deliberately renumbered in the C port. **Fixed**: changed to match `AIL32.INC` values (PATCH_BANK_SEL=114, CHAN_LOCK=110, CHAN_PROTECT=111, VOICE_PROTECT=112, INDIRECT_C_PFX=115, FOR_LOOP=116, NEXT_LOOP=117, CLEAR_BEAT_BAR=118, CALLBACK_TRIG=119).
 
-- [ ] **`ctrl_hash` stores indices vs pre-multiplied offsets**
-  C multiplies at access time via `GCTL()` macro — functionally equivalent.
+- [x] **`ctrl_hash` stores indices vs pre-multiplied offsets**
+  C multiplies at access time via `GCTL()` macro — functionally equivalent. **Fixed**: now stores pre-multiplied offsets (`i * NUM_CHANS`) matching ASM; access uses `hash + chan` without multiply.
 
 - [ ] **Note queue: struct vs parallel arrays**
-  C uses `struct note_entry {chan, num, time}` with 4-byte padding vs ASM's tightly packed arrays. 256 bytes vs 192 bytes.
+  C uses `struct note_entry {chan, num, time}` with 4-byte padding vs ASM's tightly packed arrays. 256 bytes vs 192 bytes. Functionally equivalent.
 
-- [ ] **`FOR_loop_cnt` / `FOR_ptrs` field order reversed**
-  C places `cnt` before `ptrs`; ASM has `ptrs` before `cnt`. Self-consistent.
+- [x] **`FOR_loop_cnt` / `FOR_ptrs` field order reversed**
+  C places `cnt` before `ptrs`; ASM has `ptrs` before `cnt`. **Fixed**: swapped field order in `struct sequence_state` to match ASM.
 
 ---
 

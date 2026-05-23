@@ -66,6 +66,6 @@ void xmidi32_init_globals(void) {
 
     for (i = 0; i < 9; i++) {
         uint8_t ctrl = logged_ctrls[i];
-        ctrl_hash[ctrl] = (uint8_t)i;
+        ctrl_hash[ctrl] = (uint8_t)(i * NUM_CHANS);
     }
 }

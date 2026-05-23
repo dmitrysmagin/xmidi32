@@ -80,9 +80,9 @@ extern const uint8_t ctrl_default[9];
 extern const uint8_t prg_default[15];
 extern uint8_t ctrl_hash[256];
 
-#define GCTL(ch, idx) (((uint8_t *)&global_controls)[(idx) * NUM_CHANS + (ch)])
+#define GCTL(ch, idx) (((uint8_t *)&global_controls)[(idx) + (ch)])
 
-#define CTRL_LOG(st, ctrl_idx) (((uint8_t *)&(st)->chan_controls)[(ctrl_idx) * NUM_CHANS])
+#define CTRL_LOG(st, ctrl_idx) (((uint8_t *)&(st)->chan_controls)[(ctrl_idx)])
 
 void xmidi32_inc_sequence_count(void);
 void xmidi32_dec_sequence_count(void);

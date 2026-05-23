@@ -56,8 +56,8 @@ struct sequence_state {
     int32_t  beat_fraction;
     int32_t  time_per_beat;
 
-    int16_t FOR_loop_cnt[FOR_NEST];
     uint8_t *FOR_ptrs[FOR_NEST];
+    int16_t FOR_loop_cnt[FOR_NEST];
 
     uint8_t chan_map[NUM_CHANS];
     uint8_t chan_program[NUM_CHANS];

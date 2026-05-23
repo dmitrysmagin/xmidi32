@@ -12,8 +12,8 @@ uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
 
     uint8_t hash = ctrl_hash[ctrl & 0x7F];
     if (hash != 0xFF) {
-        ((uint8_t *)&global_controls)[hash * NUM_CHANS + log_chan] = (uint8_t)val;
-        ((uint8_t *)&(st)->chan_controls)[hash * NUM_CHANS + log_chan] = (uint8_t)val;
+        ((uint8_t *)&global_controls)[hash + log_chan] = (uint8_t)val;
+        ((uint8_t *)&(st)->chan_controls)[hash + log_chan] = (uint8_t)val;
     }
 
     if (ctrl == PART_VOLUME) {
