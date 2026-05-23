@@ -8,19 +8,16 @@ static uint32_t g_sample_accum = 0;
 
 static void sdl_audio_callback(void *userdata, uint8_t *stream, int len) {
     (void)userdata;
-    int16_t *buf = (int16_t *)stream;
-    uint32_t samples = (uint32_t)len / 4;
     opl3_chip *chip = xmi_backend_get_chip();
-    uint32_t spt = g_samples_per_tick;
 
-    uint32_t i;
-    for (i = 0; i < samples; i++) {
-        g_sample_accum++;
-        if (g_sample_accum >= spt) {
-            g_sample_accum -= spt;
+    for (int i = 0; i < len; i += 4) {
+        if (g_sample_accum >= g_samples_per_tick) {
+            g_sample_accum -= g_samples_per_tick;
             xmidi32_serve_driver();
         }
-        OPL3_GenerateResampled(chip, buf + i * 2);
+        //OPL3_GenerateResampled(chip, buf + i * 2);
+        OPL3_GenerateStream(chip, (int16_t *)(stream + i), 1);
+        g_sample_accum++;
     }
 }
 
@@ -32,7 +29,7 @@ int sdl_audio_init(uint32_t sample_rate) {
     want.freq = (int)sample_rate;
     want.format = AUDIO_S16SYS;
     want.channels = 2;
-    want.samples = 1024;
+    want.samples = 2048;
     want.callback = sdl_audio_callback;
     if (SDL_OpenAudio(&want, &have) < 0) {
         return -1;
