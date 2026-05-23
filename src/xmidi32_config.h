@@ -40,6 +40,8 @@
 #define NEXT_LOOP        101
 #define CLEAR_BEAT_BAR   108
 #define CALLBACK_TRIG    110
+#define TIMBRE_PROTECT   113
+#define RESET_ALL_CTRLS  121
 #define ALL_NOTES_OFF    123
 
 #ifndef DEF_SYNTH_VOL

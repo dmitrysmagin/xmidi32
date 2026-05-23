@@ -5,7 +5,7 @@
 
 #define DEF_AV_DEPTH 0xC0
 
-extern const uint16_t freq_table[128];
+extern const uint16_t freq_table[192];
 extern const uint8_t note_octave[128];
 extern const uint8_t note_halftone[128];
 extern const uint8_t array0_init[245];

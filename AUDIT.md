@@ -30,20 +30,20 @@
 
 ## HIGH — Functional Issues
 
-- [ ] **Missing re-entrancy guard** (`src/xmidi32_serve.c:6`)
-  No `xm32_try_enter(&service_active)` at the top of `xmidi32_serve_driver()`. ASM checks and increments `service_active` before processing.
+- [x] **Missing re-entrancy guard** (`src/xmidi32_serve.c:6`)
+  No `xm32_try_enter(&service_active)` at the top of `xmidi32_serve_driver()`. ASM checks and increments `service_active` before processing. **Fixed**: added `if (xm32_try_enter(&service_active) != 0) return;` at function entry.
 
-- [ ] **No multi-interval loop-back** (`src/xmidi32_serve.c:19`)
-  When `tempo_err >= 100` after beat handling, ASM loops back to reprocess (handling `tempo_percent > 100%`). C processes exactly one interval per service call.
+- [x] **No multi-interval loop-back** (`src/xmidi32_serve.c:19`)
+  When `tempo_err >= 100` after beat handling, ASM loops back to reprocess (handling `tempo_percent > 100%`). C processes exactly one interval per service call. **Fixed**: added `rep_interval:` label before tempo check and `if (st->tempo_error >= 100) goto rep_interval;` after gradient blocks.
 
 - [ ] **XMIDI controller numbers differ from AIL spec** (`src/xmidi32_config.h:34-42`)
   `CHAN_LOCK=96` (was 110), `FOR_LOOP=100` (was 116), `CALLBACK_TRIG=110` (was 119), `PATCH_BANK_SEL=0` (was 114), etc. The C port **renumbered all extended XMIDI controllers**.
 
-- [ ] **`TIMBRE_PROTECT` (ctrl 113) not handled** (`src/xmidi32_yamaha.c:962`)
-  ASM handles controller 113 to protect/unprotect individual timbres in the cache via `index_timbre()`. C port has no equivalent.
+- [x] **`TIMBRE_PROTECT` (ctrl 113) not handled** (`src/xmidi32_yamaha.c:962`)
+  ASM handles controller 113 to protect/unprotect individual timbres in the cache via `index_timbre()`. C port has no equivalent. **Fixed**: added `case TIMBRE_PROTECT:` in `yamaha_controller()` switch — sets/clears bit 6 of `timb_attribs[MIDI_timbre[chan]]` based on `val >= 64`.
 
-- [ ] **`RESET_ALL_CTRLS` (ctrl 121) not handled** (`src/xmidi32_yamaha.c:962`)
-  ASM resets modulation, expression, sustain, pitch bend defaults and flags all voice params for update. C port missing.
+- [x] **`RESET_ALL_CTRLS` (ctrl 121) not handled** (`src/xmidi32_yamaha.c:962`)
+  ASM resets modulation, expression, sustain, pitch bend defaults and flags all voice params for update. C port missing. **Fixed**: added `case RESET_ALL_CTRLS:` in `yamaha_controller()` switch — resets `MIDI_mod`, `MIDI_express`, `MIDI_sus`, `MIDI_pitch_l/h`, releases sustained notes, flags all channel voices for update with `U_ALL_REGS`.
 
 ---
 

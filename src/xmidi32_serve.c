@@ -4,6 +4,7 @@
 #include "xmidi32_utils.h"
 
 void xmidi32_serve_driver(void) {
+    if (xm32_try_enter(&service_active) != 0) return;
     if (sequence_count == 0) goto done_synth;
 
     HSEQUENCE seq = 0;
@@ -14,6 +15,8 @@ void xmidi32_serve_driver(void) {
         if (st == NULL) continue;
         if (st->status != SEQ_PLAYING) continue;
 
+    rep_interval:
+        ;
         int32_t tempo_err = st->tempo_error + st->tempo_percent;
         st->tempo_error = tempo_err;
         if (tempo_err >= 100) {
@@ -223,6 +226,8 @@ check_beat:
             st->vol_percent = new_vol;
             xmidi32_XMIDI_volume(st);
         }
+
+        if (st->tempo_error >= 100) goto rep_interval;
     }
 
 done_synth:

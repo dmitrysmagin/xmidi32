@@ -999,6 +999,40 @@ void yamaha_controller(uint32_t chan, uint32_t ctrl, uint32_t val) {
         case 98:
             MIDI_vprot[chan] = (uint8_t)val;
             break;
+        case TIMBRE_PROTECT:
+            if (MIDI_timbre[chan] >= 0) {
+                if (val >= 64)
+                    timb_attribs[MIDI_timbre[chan]] |= 0x40;
+                else
+                    timb_attribs[MIDI_timbre[chan]] &= 0xBF;
+            }
+            break;
+        case RESET_ALL_CTRLS:
+            MIDI_mod[chan] = 0;
+            MIDI_express[chan] = 127;
+            MIDI_sus[chan] = 0;
+            MIDI_pitch_l[chan] = 0;
+            MIDI_pitch_h[chan] = 64;
+            {
+                int32_t si;
+                for (si = 0; si < (int32_t)NUM_SLOTS_MAX; si++) {
+                    if (S_status[si] == SLOT_FREE) continue;
+                    if (S_channel[si] != chan) continue;
+                    if (!S_sustain[si]) continue;
+                    S_sustain[si] = 0;
+                    yamaha_note_off(chan, S_keynum[si]);
+                }
+            }
+            {
+                int32_t si;
+                for (si = 0; si < (int32_t)NUM_SLOTS_MAX; si++) {
+                    if (S_status[si] == SLOT_FREE) continue;
+                    if (S_channel[si] != chan) continue;
+                    S_update[si] |= U_ALL_REGS;
+                    update_voice(si);
+                }
+            }
+            break;
         default:
             break;
     }
