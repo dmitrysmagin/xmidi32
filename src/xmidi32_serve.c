@@ -2,6 +2,7 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_config.h"
 #include "xmidi32_utils.h"
+#include "backend.h"
 
 void xmidi32_serve_driver(void) {
     if (service_active != 0) return;
@@ -232,4 +233,5 @@ next_seq: ;
 done_synth:
     serve_synth();
     service_active = 0;
+    dro_tick();
 }

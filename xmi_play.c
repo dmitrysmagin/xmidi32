@@ -56,6 +56,7 @@ static void write_wav(const char *path, int16_t *buf, uint32_t total_samples) {
 }
 
 static int run_wav_mode(int argc, char *argv[], int seq_first) {
+    dro_start("xmi/capture.txt");
     xmi_backend_init();
 
     xmidi32_init_globals();
@@ -136,6 +137,7 @@ static int run_wav_mode(int argc, char *argv[], int seq_first) {
         if (!playing) break;
     }
 
+    dro_stop();
     fprintf(stderr, "Rendered %u samples\n", total);
 
     if (total > 0) {

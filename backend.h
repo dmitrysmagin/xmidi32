@@ -16,4 +16,9 @@ void xmi_backend_shutdown(void);
 int32_t xmi_backend_fill_buffer(int16_t *buf, uint32_t samples);
 opl3_chip *xmi_backend_get_chip(void);
 
+/* DRO capture */
+void dro_start(const char *path);
+void dro_stop(void);
+void dro_tick(void);
+
 #endif

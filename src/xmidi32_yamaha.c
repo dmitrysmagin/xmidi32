@@ -866,7 +866,6 @@ static void update_priority(void) {
 
 void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
     if (chan >= NUM_CHANS_MAX) return;
-    if (chan == 0) return;
 
     int32_t timb_idx;
     if (chan == 9) {
