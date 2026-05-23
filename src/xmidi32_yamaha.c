@@ -223,10 +223,12 @@ static inline uint8_t inport(uint16_t port) {
 }
 #endif
 
+#ifndef XMI_EMULATION
 static void io_delay(void) {
     volatile int i;
     for (i = 0; i < 6; i++) (void)0;
 }
+#endif
 
 static void update_reg(uint8_t oper, uint8_t base, uint8_t val) {
     uint8_t bh = op_array[oper];
@@ -258,6 +260,7 @@ static void send_byte(uint8_t voice, uint8_t base, uint8_t val) {
 #endif
 }
 
+#ifndef XMI_EMULATION
 static void detect_send(uint8_t address, uint8_t data) {
     io_delay();
     outport((uint16_t)ADDR_STAT, address);
@@ -277,6 +280,7 @@ static uint8_t read_status(void) {
     io_delay();
     return inport((uint16_t)ADDR_STAT);
 }
+#endif
 
 #ifdef XMI_EMULATION
 static int32_t detect_Adlib(void) { return 1; }
@@ -494,8 +498,7 @@ static void update_priority(void);
 static void assign_voice(int32_t slot) {
 #if SYNTH_TYPE == YMF262
     if (S_type[slot] == OPL3_INST) {
-        int32_t dx = -1;
-        int32_t di = rover_4op;
+        int32_t dx = rover_4op;
         int32_t v;
         for (v = 0; v < NUM_4OP_VOICES; v++) {
             dx++;
@@ -518,7 +521,7 @@ static void assign_voice(int32_t slot) {
     }
 #endif
 
-    int32_t dx = -1;
+    int32_t dx = rover_2op;
     int32_t v;
     for (v = 0; v < NUM_VOICES_MAX; v++) {
         dx++;
@@ -661,9 +664,8 @@ static void update_voice(int32_t slot) {
     do {
         int32_t vi = S_voice[slot];
 #if SYNTH_TYPE == YMF262
-        int32_t vi_pair = arr ? (vi + 3) : vi;
-        uint8_t op_a = op_0[vi_pair];
-        uint8_t op_b = op_1[vi_pair];
+        uint8_t op_a = arr ? alt_op_0[vi] : op_0[vi];
+        uint8_t op_b = arr ? alt_op_1[vi] : op_1[vi];
 #else
         (void)vi;
         uint8_t op_a = op_0[vi];
@@ -883,10 +885,10 @@ static void update_priority(void) {
 
     int32_t high_unvoiced = -1;
     int32_t low_voiced = -1;
-    int32_t low_voiced_pri = 0xFFFF;
+    uint32_t low_voiced_pri = 0xFFFF;
 #if SYNTH_TYPE == YMF262
     int32_t low_4op = -1;
-    int32_t low_4op_pri = 0xFFFF;
+    uint32_t low_4op_pri = 0xFFFF;
 #endif
 
     for (si = 0; si < (int32_t)NUM_SLOTS_MAX; si++) {
@@ -895,18 +897,18 @@ static void update_priority(void) {
         int32_t vi = S_voice[si];
 
         if (vi < 0) {
-            if ((int32_t)pri > high_unvoiced) {
+            if (pri > (uint32_t)high_unvoiced) {
                 high_unvoiced = si;
             }
         } else {
 #if SYNTH_TYPE == YMF262
             if (op4_base[vi] && pri < low_4op_pri) {
-                low_4op_pri = (int32_t)pri;
+                low_4op_pri = pri;
                 low_4op = si;
             }
 #endif
-            if ((int32_t)pri < low_voiced_pri) {
-                low_voiced_pri = (int32_t)pri;
+            if (pri < low_voiced_pri) {
+                low_voiced_pri = pri;
                 low_voiced = si;
             }
         }
