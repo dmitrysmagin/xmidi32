@@ -1,3 +1,4 @@
 *.o
 *.exe
 xmi_play
+.build_tmp

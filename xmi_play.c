@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "backend.h"
 #include "sdl_audio.h"
 #include "timbre_bank.h"
