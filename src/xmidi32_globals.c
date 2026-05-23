@@ -5,7 +5,7 @@ struct ctrl_log global_controls;
 uint8_t global_program[NUM_CHANS];
 uint8_t global_pitch_l[NUM_CHANS];
 uint8_t global_pitch_h[NUM_CHANS];
-uint8_t active_notes[NUM_CHANS];
+uint32_t active_notes[NUM_CHANS];
 uint8_t lock_status[NUM_CHANS];
 uint16_t init_OK = 0;
 uint32_t service_active = 0;

@@ -4,7 +4,8 @@
 #include "xmidi32_utils.h"
 
 void xmidi32_serve_driver(void) {
-    if (xm32_try_enter(&service_active) != 0) return;
+    if (service_active != 0) return;
+    service_active = 1;
     if (sequence_count == 0) goto done_synth;
 
     HSEQUENCE seq = 0;
@@ -37,11 +38,10 @@ void xmidi32_serve_driver(void) {
                         st->note_queue[note_slot].chan = 0xFF;
                         if (st->chan_map[chan & 0x0F] < NUM_CHANS) {
                             uint32_t pc = st->chan_map[chan & 0x0F];
-                            xm32_atomic_add((volatile uint32_t *)&active_notes[pc],
-                                             (uint32_t)-1);
+                            active_notes[pc]--;
                         }
                         xmidi32_send_note_off(st->chan_map[chan & 0x0F], note, 0);
-                        xm32_atomic_dec16(&st->note_count);
+                        st->note_count--;
                     }
                 }
                 if (st->interval_cnt > 0) {
@@ -150,9 +150,9 @@ void xmidi32_serve_driver(void) {
                         st->note_queue[ns].num == data1) {
                         st->note_queue[ns].chan = 0xFF;
                         if (st->chan_map[log_chan & 0x0F] < NUM_CHANS)
-                            xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan], (uint32_t)-1);
+                            active_notes[phys_chan]--;
                         xmidi32_send_note_off(phys_chan, data1, data2);
-                        xm32_atomic_dec16(&st->note_count);
+                        st->note_count--;
                         break;
                     }
                 }
@@ -232,5 +232,5 @@ check_beat:
 
 done_synth:
     serve_synth();
-    xm32_leave(&service_active);
+    service_active = 0;
 }

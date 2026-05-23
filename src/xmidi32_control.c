@@ -1,6 +1,5 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_control.h"
-#include "xmidi32_critical.h"
 
 uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
                               uint32_t ctrl, uint32_t val) {
@@ -39,10 +38,7 @@ uint32_t xmidi32_XMIDI_control(struct sequence_state *st, uint32_t log_chan,
     if (ctrl == CALLBACK_TRIG) {
         st->cur_callback = (void *)(intptr_t)val;
         if (trigger_fn != NULL) {
-            if (xm32_try_enter_callback()) {
-                trigger_fn(st->seq_handle, val);
-                xm32_leave_callback();
-            }
+            trigger_fn(st->seq_handle, val);
         }
         return 3;
     }

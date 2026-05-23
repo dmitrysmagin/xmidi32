@@ -1,5 +1,4 @@
 #include "xmidi32_driver.h"
-#include "xmidi32_critical.h"
 
 uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
     const uint8_t *p = st->EVNT_ptr;
@@ -33,9 +32,9 @@ uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
             if (st->note_queue[ns].chan == chan && st->note_queue[ns].num == note) {
                 st->note_queue[ns].chan = 0xFF;
                 if (st->chan_map[chan & 0x0F] < NUM_CHANS)
-                    xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan], (uint32_t)-1);
+                    active_notes[phys_chan]--;
                 xmidi32_send_note_off(phys_chan, note, 0);
-                xm32_atomic_dec16(&st->note_count);
+                st->note_count--;
                 break;
             }
         }
@@ -50,14 +49,14 @@ uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
     if (slot == MAX_NOTES) {
         slot = 0;
     } else {
-        xm32_atomic_inc16(&st->note_count);
+        st->note_count++;
     }
 
     st->note_queue[slot].chan = (uint8_t)chan;
     st->note_queue[slot].num = note;
     st->note_queue[slot].time = (int32_t)duration - 1;
 
-    xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan], 1);
+    active_notes[phys_chan]++;
     xmidi32_send_note_on(phys_chan, note, velocity);
 
     return event_len;

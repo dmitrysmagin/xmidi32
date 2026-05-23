@@ -1,18 +1,18 @@
 #include "xmidi32_driver.h"
+#include "xmidi32_utils.h"
 #include "xmidi32_reset.h"
-#include "xmidi32_critical.h"
 
 uint32_t xmidi32_get_state_size(void) {
     return (uint32_t)sizeof(struct sequence_state);
 }
 
 void xmidi32_install_callback(void *fn) {
-    xm32_atomic_xchg((volatile uint32_t *)&trigger_active, 0);
+    trigger_active = 0;
     trigger_fn = (int32_t (*)(int32_t, int32_t))fn;
 }
 
 void xmidi32_cancel_callback(void) {
-    xm32_atomic_xchg((volatile uint32_t *)&trigger_active, 0);
+    trigger_active = 0;
     trigger_fn = NULL;
 }
 
