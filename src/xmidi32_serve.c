@@ -1,12 +1,9 @@
+#include <stdio.h>
 #include "xmidi32_driver.h"
 #include "xmidi32_config.h"
 #include "xmidi32_utils.h"
 
 void xmidi32_serve_driver(void) {
-    if (!xm32_try_enter(&service_active)) return;
-
-    current_handle = -4;
-
     if (sequence_count == 0) goto done_synth;
 
     HSEQUENCE seq = 0;

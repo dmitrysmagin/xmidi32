@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "xmidi32_driver.h"
 #include "xmidi32_backend.h"
 #include "xmidi32_yamaha.h"
@@ -61,7 +62,7 @@ void xmi_backend_opl_write(uint16_t reg, uint8_t val);
 #endif
 
 #pragma pack(push, 1)
-struct BNK_timbre {
+struct BNK_timbre  {
     uint16_t B_length;
     int8_t   B_transpose;
     uint8_t  B_mod_AVEKM;
@@ -75,7 +76,7 @@ struct BNK_timbre {
     uint8_t  B_car_AD;
     uint8_t  B_car_SR;
     uint8_t  B_car_WS;
-};
+} __attribute__((packed));
 
 struct OPL3BNK_timbre {
     struct BNK_timbre base;
@@ -90,7 +91,7 @@ struct OPL3BNK_timbre {
     uint8_t  O_car_AD;
     uint8_t  O_car_SR;
     uint8_t  O_car_WS;
-};
+} __attribute__((packed));
 #pragma pack(pop)
 
 static void release_voice(int32_t slot);
@@ -327,7 +328,7 @@ static void delete_LRU(void) {
 
     uint32_t toff = timb_offsets[lru_idx];
     uint8_t *timb_ptr = cache_base + toff;
-    uint16_t tsize = *(uint16_t*)timb_ptr;
+    uint16_t tsize = (uint16_t)timb_ptr[0] | ((uint16_t)timb_ptr[1] << 8);
 
     uint8_t *dst = cache_base + toff;
     uint8_t *src = dst + tsize;
@@ -402,8 +403,8 @@ static void do_install_timbre(uint16_t gnum, const void *data) {
 
     if (data == NULL) return;
 
-    const struct BNK_timbre *src = (const struct BNK_timbre *)data;
-    uint16_t tsize = src->B_length;
+    const uint8_t *src = (const uint8_t *)data;
+    uint16_t tsize = (uint16_t)src[0] | ((uint16_t)src[1] << 8);
 
     while ((cache_end + tsize) > cache_size) delete_LRU();
 
@@ -548,40 +549,33 @@ static void BNK_phase(int32_t slot) {
     S_duration[slot] = 0xFFFF;
     S_p_val[slot] = 32767;
 
-    struct BNK_timbre *bnk = (struct BNK_timbre*)tptr;
+    uint8_t fb_c      = tptr[8];
+    uint8_t m_ksltl   = tptr[4];
+    uint8_t c_ksltl   = tptr[10];
+    uint8_t m_avekm   = tptr[3];
+    uint8_t c_avekm   = tptr[9];
 
-    uint8_t fb_c = bnk->B_fb_c;
     S_FBC[slot] = fb_c & 1;
-    uint16_t fb = ((uint16_t)(fb_c & 0x0E)) << 3;
-    S_fb_val[slot] = fb;
+    S_fb_val[slot] = ((uint16_t)(fb_c & 0x0E)) << 3;
 
-    uint8_t m_ksltl = bnk->B_mod_KSLTL;
     S_KSLTL_0[slot] = m_ksltl & 0xC0;
-    uint8_t m_lev = (~m_ksltl) & 0x3F;
-    S_v0_val[slot] = (uint16_t)(m_lev << 2);
+    S_v0_val[slot] = (uint16_t)(((~m_ksltl) & 0x3F) << 2);
 
-    uint8_t c_ksltl = bnk->B_car_KSLTL;
     S_KSLTL_1[slot] = c_ksltl & 0xC0;
-    uint8_t c_lev = (~c_ksltl) & 0x3F;
-    S_v1_val[slot] = (uint16_t)(c_lev << 2);
+    S_v1_val[slot] = (uint16_t)(((~c_ksltl) & 0x3F) << 2);
 
-    uint8_t m_avekm = bnk->B_mod_AVEKM;
     S_AVEKM_0[slot] = m_avekm;
-    uint16_t m_mult = ((uint16_t)m_avekm & 0x0F) << 4;
-    S_m0_val[slot] = m_mult;
+    S_m0_val[slot] = ((uint16_t)m_avekm & 0x0F) << 4;
 
-    uint8_t c_avekm = bnk->B_car_AVEKM;
     S_AVEKM_1[slot] = c_avekm;
-    uint16_t c_mult = ((uint16_t)c_avekm & 0x0F) << 4;
-    S_m1_val[slot] = c_mult;
+    S_m1_val[slot] = ((uint16_t)c_avekm & 0x0F) << 4;
 
-    S_AD_0[slot] = bnk->B_mod_AD;
-    S_SR_0[slot] = bnk->B_mod_SR;
-    S_AD_1[slot] = bnk->B_car_AD;
-    S_SR_1[slot] = bnk->B_car_SR;
+    S_AD_0[slot] = tptr[5];
+    S_SR_0[slot] = tptr[6];
+    S_AD_1[slot] = tptr[11];
+    S_SR_1[slot] = tptr[12];
 
-    uint8_t ws = bnk->B_car_WS;
-    S_ws_val[slot] = ((uint16_t)ws << 8) | bnk->B_mod_WS;
+    S_ws_val[slot] = ((uint16_t)tptr[13] << 8) | tptr[7];
 
     S_scale_01[slot] = (uint8_t)(S_FBC[slot] | 2);
     S_update[slot] = U_ALL_REGS;
@@ -593,11 +587,10 @@ static void OPL_phase(int32_t slot) {
 
     uint32_t off = ((uint32_t)S_timbre_off_h[slot] << 8) | S_timbre_off_l[slot];
     uint8_t *tptr = cache_base + off;
-    struct OPL3BNK_timbre *bnk = (struct OPL3BNK_timbre*)tptr;
 
     S_type[slot] = OPL3_INST;
 
-    uint8_t fb_c = bnk->base.B_fb_c;
+    uint8_t fb_c = tptr[8];
     S_FBC[slot] = (S_FBC[slot] & 1) | ((fb_c & 0x80) >> 6);
 
     uint8_t c01 = carrier_01_data[S_FBC[slot] & 3];
@@ -605,31 +598,28 @@ static void OPL_phase(int32_t slot) {
     S_scale_01[slot] = c01;
     S_scale_23[slot] = c23;
 
-    uint8_t om_ksltl = bnk->O_mod_KSLTL;
+    uint8_t om_ksltl = tptr[15];
     S_KSLTL_2[slot] = om_ksltl & 0xC0;
-    uint8_t om_lev = (~om_ksltl) & 0x3F;
-    S_v2_val[slot] = (uint16_t)(om_lev << 2);
+    S_v2_val[slot] = (uint16_t)(((~om_ksltl) & 0x3F) << 2);
 
-    uint8_t oc_ksltl = bnk->O_car_KSLTL;
+    uint8_t oc_ksltl = tptr[21];
     S_KSLTL_3[slot] = oc_ksltl & 0xC0;
-    uint8_t oc_lev = (~oc_ksltl) & 0x3F;
-    S_v3_val[slot] = (uint16_t)(oc_lev << 2);
+    S_v3_val[slot] = (uint16_t)(((~oc_ksltl) & 0x3F) << 2);
 
-    uint8_t om_avekm = bnk->O_mod_AVEKM;
+    uint8_t om_avekm = tptr[14];
     S_AVEKM_2[slot] = om_avekm & 0xF0;
     S_m2_val[slot] = ((uint16_t)om_avekm & 0x0F) << 4;
 
-    uint8_t oc_avekm = bnk->O_car_AVEKM;
+    uint8_t oc_avekm = tptr[20];
     S_AVEKM_3[slot] = oc_avekm & 0xF0;
     S_m3_val[slot] = ((uint16_t)oc_avekm & 0x0F) << 4;
 
-    S_AD_2[slot] = bnk->O_mod_AD;
-    S_SR_2[slot]  = bnk->O_mod_SR;
-    S_AD_3[slot]  = bnk->O_car_AD;
-    S_SR_3[slot]  = bnk->O_car_SR;
+    S_AD_2[slot] = tptr[16];
+    S_SR_2[slot]  = tptr[17];
+    S_AD_3[slot]  = tptr[22];
+    S_SR_3[slot]  = tptr[23];
 
-    uint8_t ows = bnk->O_car_WS;
-    S_ws_val_2[slot] = ((uint16_t)ows << 8) | bnk->O_mod_WS;
+    S_ws_val_2[slot] = ((uint16_t)tptr[24] << 8) | tptr[18];
 }
 #endif
 

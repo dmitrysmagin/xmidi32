@@ -20,7 +20,12 @@ xmi_play.exe: xmi_play.o $(OBJ_FILES)
 %.o: %.c
 	$(CC) $(CFLAGS) $(SDL_CFLAGS) -c -o $@ $<
 
+dump_wav.exe: dump_wav.o $(OBJ_FILES)
+	printf '%s\n' $^ > link.rsp
+	$(CC) $(CFLAGS) -o $@ @link.rsp $(LDFLAGS) -lm
+	rm -f link.rsp
+
 clean:
-	rm -f xmi_play xmi_play.exe xmi_play.o $(OBJ_FILES) link.rsp
+	rm -f xmi_play xmi_play.exe xmi_play.o dump_wav.exe dump_wav.o $(OBJ_FILES) link.rsp
 
 .PHONY: clean
