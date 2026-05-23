@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
         return run_wav_mode(argc, argv, 2);
     }
 
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_NOPARACHUTE) < 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return 1;
     }

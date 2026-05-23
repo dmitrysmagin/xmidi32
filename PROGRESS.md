@@ -7,7 +7,15 @@ Build a working `xmi_play.exe` that plays XMIDI files on Windows via Nuked OPL3 
 - MinGW (MSYS2 UCRT64) under Git Bash on Windows
 - `mingw32-make` (native PE binary avoids msys spawn temp-file failures)
 - Console subsystem (`-mconsole`)
-- Links: SDL2, SDL2main, mingw32
+- Links: SDL2, SDL2main, mingw32, libm
+- `pkg-config` for SDL2 flags (avoids space-in-path issues with `sdl2-config`)
+- `.build_tmp` + per-command `TMP/TEMP/TMPDIR` to fix gcc temp-file permission errors
+- Include style: `<SDL.h>` (both pkg-config include paths provide it)
+
+## Features
+- **SDL playback:** real-time audio via `sdl_audio_callback()` matching WAV dumper logic
+- **`--wav` mode:** render XMIDI to `.wav` file (bypasses SDL, same serve/generate core)
+- Multi-file playback: `xmi_play.exe file1.xmi file2.xmi ...`
 
 ## Fixed Bugs
 
@@ -45,6 +53,31 @@ DEMO.XMI starts with `FORM XDIR` (metadata), not `FORM XMID`. The function retur
 
 **Fix:** Changed `xmidi32_map_seq_channel(h, j, j)` to `xmidi32_map_seq_channel(h, j + 1, j + 1)`.
 
+### Missing 0x80 Note Off handler
+Event dispatch in `xmidi32_serve.c` had no case for status 0x80 (Note Off). The byte was never consumed, locking the sequencer.
+
+**Fix:** Added case for 0x80 calling `xmidi32_note_off()` and advancing past the two data bytes.
+
+### Velocity 0 note-on as note-off
+MIDI convention: a Note On with velocity=0 should act as a Note Off. The original port treated all Note On events as note starts.
+
+**Fix:** In `xmidi32_note_on.c`, if velocity is 0, call `xmidi32_note_off()` instead.
+
+### Meta event length 2 bytes too short
+`total_len` in `xmidi32_meta.c` only counted the length byte and data, omitting the FF status byte and type byte. `EVNT_ptr` jumped into meta data instead of past it.
+
+**Fix:** Changed `total_len` to `1 + 1 + length` (FF + type + data).
+
+### Interval counting skipped when notes active
+Original assembly's `__end_queue` always decrements `interval_cnt` and falls through to `__do_events` when <= 0. The C port's else branch (notes still active) skipped the decrement, causing events to be consumed immediately.
+
+**Fix:** Removed `if (note_count == 0)` guard — interval is always decremented.
+
+### Tempo DDA compared against wrong value
+The original assembly compares `tempo_err` against hardcoded 100 and subtracts 100. The C port used `tempo_percent` (a variable), causing erratic timing with non-100 tempo.
+
+**Fix:** Changed `tempo_err >= tempo_percent` / subtract `tempo_percent` to `>= 100` / subtract `100`.
+
 ## Build Warnings
 - **Zero warnings** in project source files (all `-Wall -Wextra` clean)
 - Pre-existing warnings in `opl3.c` (third-party, not our code)
@@ -52,12 +85,17 @@ DEMO.XMI starts with `FORM XDIR` (metadata), not `FORM XMID`. The function retur
 ## How to run
 ```
 xmi_play.exe <file.xmi> [file2.xmi ...]
+xmi_play.exe --wav <file.xmi>     # render to WAV instead of playback
 ```
 
 ## Files changed
-- `Makefile` — added `-mconsole`
+- `Makefile` — `-mconsole`, `pkg-config`, `.build_tmp` + `TMP_ENV`, `.DEFAULT_GOAL`, `SYSTEMROOT` detection
+- `xmi_play.c` — `--wav` mode, `#include <SDL.h>`
+- `sdl_audio.c` — callback rewritten to match WAV loop (static accum, hardcoded spt), `#include <SDL.h>`, hardcoded 44100
 - `src/xmidi32_backend.h` — added `XMI_EMULATION`
 - `src/xmidi32_find_seq.c` — fixed tag constants, FORM start return, XDIR skip
 - `src/xmidi32_register.c` — fixed tag constants
 - `src/xmidi32_tempo.c` — fixed RBRN tag constant
-- `xmi_play.c` — fixed 1-based channel mapping
+- `src/xmidi32_serve.c` — added 0x80 Note Off handler, removed interval-count guard, fixed DDA comparison
+- `src/xmidi32_note_on.c` — velocity 0 → note off
+- `src/xmidi32_meta.c` — fixed total_len calculation
