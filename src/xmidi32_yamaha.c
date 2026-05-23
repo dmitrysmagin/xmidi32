@@ -185,8 +185,8 @@ static int8_t   V_channel[NUM_VOICES_MAX];
 static uint16_t S_V_priority[NUM_SLOTS_MAX];
 
 #if SYNTH_TYPE == YMF262
-static const uint8_t alt_op_0[18] = { 6, 7, 8, 0, 1, 2, 0xFF,0xFF,0xFF, 24,25,26,18,19,20,0xFF,0xFF,0xFF };
-static const uint8_t alt_op_1[18] = { 9,10,11, 3, 4, 5, 0xFF,0xFF,0xFF, 27,28,29,21,22,23,0xFF,0xFF,0xFF };
+static const uint8_t alt_op_0[18] = { 6, 7, 8, 12,13,14, 0xFF,0xFF,0xFF, 24,25,26,30,31,32,0xFF,0xFF,0xFF };
+static const uint8_t alt_op_1[18] = { 9,10,11, 15,16,17, 0xFF,0xFF,0xFF, 27,28,29,33,34,35,0xFF,0xFF,0xFF };
 static const uint8_t conn_sel[18] = { 1, 2, 4, 1, 2, 4, 0, 0, 0, 8,16,32, 8,16,32, 0, 0, 0 };
 static const uint8_t op4_voice[6]  = { 0, 1, 2, 9,10,11 };
 #endif
@@ -418,7 +418,7 @@ static void assign_voice(int32_t slot) {
             if (V_channel[vi + 3] >= 0) continue;
             S_voice[slot] = (int8_t)vi;
             int32_t ch = S_channel[slot];
-            MIDI_voices[vi]++;
+            MIDI_voices[ch]++;
             V_channel[vi]     = (int8_t)ch;
             V_channel[vi + 3] = (int8_t)ch;
             S_update[slot] = U_ALL_REGS;
@@ -538,14 +538,16 @@ static void OPL_phase(int32_t slot) {
 
 static void update_voice(int32_t slot) {
     if (S_voice[slot] < 0) return;
-
-    uint8_t vol = 64;
+    uint8_t vol = 0;
     if (S_update[slot] & U_KSLTL) {
         int32_t ch = S_channel[slot] & 0x0F;
-        uint32_t v = ((uint32_t)MIDI_vol[ch] * (uint32_t)MIDI_express[ch]) >> 7;
-        if (v == 0) v = 1;
-        uint32_t vel = S_velocity[slot];
-        vol = (uint8_t)((((v * vel) >> 7) == 0) ? 1 : ((v * vel) >> 7));
+        uint32_t t = (uint32_t)MIDI_vol[ch] * (uint32_t)MIDI_express[ch];
+        t = (t * 2) >> 8;
+        if (t) t++;
+        uint32_t v = t * S_velocity[slot];
+        v = (v * 2) >> 8;
+        if (v) v++;
+        vol = (uint8_t)v;
     }
 
     int32_t arr = 0;
@@ -612,14 +614,14 @@ static void update_voice(int32_t slot) {
             if (arr) {
                 uint8_t v2_lev = (uint8_t)((S_v2_val[slot] >> 2) & 0x3F);
                 if (S_scale_23[slot] & 1) {
-                    v2_lev = (uint8_t)((((uint32_t)v2_lev * vol) + 126) / 127);
+                    v2_lev = (uint8_t)((((uint32_t)v2_lev * vol)) / 127);
                 }
                 uint8_t att2 = (uint8_t)(~(v2_lev) & 0x3F);
                 update_reg(op_a, 0x40, (uint8_t)(att2 | S_KSLTL_2[slot]));
 
                 uint8_t v3_lev = (uint8_t)((S_v3_val[slot] >> 2) & 0x3F);
                 if (S_scale_23[slot] & 2) {
-                    v3_lev = (uint8_t)((((uint32_t)v3_lev * vol) + 126) / 127);
+                    v3_lev = (uint8_t)((((uint32_t)v3_lev * vol)) / 127);
                 }
                 uint8_t att3 = (uint8_t)(~(v3_lev) & 0x3F);
                 update_reg(op_b, 0x40, (uint8_t)(att3 | S_KSLTL_3[slot]));
@@ -628,14 +630,14 @@ static void update_voice(int32_t slot) {
             {
                 uint8_t v0_lev = (uint8_t)((S_v0_val[slot] >> 2) & 0x3F);
                 if (S_scale_01[slot] & 1) {
-                    v0_lev = (uint8_t)((((uint32_t)v0_lev * vol) + 126) / 127);
+                    v0_lev = (uint8_t)((((uint32_t)v0_lev * vol)) / 127);
                 }
                 uint8_t att0 = (uint8_t)(~(v0_lev) & 0x3F);
                 update_reg(op_a, 0x40, (uint8_t)(att0 | S_KSLTL_0[slot]));
 
                 uint8_t v1_lev = (uint8_t)((S_v1_val[slot] >> 2) & 0x3F);
                 if (S_scale_01[slot] & 2) {
-                    v1_lev = (uint8_t)((((uint32_t)v1_lev * vol) + 126) / 127);
+                    v1_lev = (uint8_t)((((uint32_t)v1_lev * vol)) / 127);
                 }
                 uint8_t att1 = (uint8_t)(~(v1_lev) & 0x3F);
                 update_reg(op_b, 0x40, (uint8_t)(att1 | S_KSLTL_1[slot]));
@@ -1089,7 +1091,7 @@ void send_MIDI_message(uint32_t status, uint32_t d1, uint32_t d2) {
     uint32_t chan = status & 0x0F;
     uint32_t type = status & 0xF0;
 
-    printf("CH: %d, EV: %02x, D1: %02x, D2: %02x\n", chan, type, d1, d2);
+    //printf("CH: %d, EV: %02x, D1: %02x, D2: %02x\n", chan, type, d1, d2);
 
     if (type == 0x80 || (type == 0x90 && d2 == 0)) {
         yamaha_note_off(chan, d1);
