@@ -2,7 +2,6 @@
 #include "sdl_audio.h"
 #include "backend.h"
 #include "src/xmidi32_driver.h"
-#include "src/xmidi32_config.h"
 
 static uint32_t g_samples_per_tick = 1;
 static uint32_t g_sample_accum = 0;

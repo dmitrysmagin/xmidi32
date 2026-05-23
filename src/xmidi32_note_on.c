@@ -25,6 +25,23 @@ uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
 
     if ((lock_status[chan] & 0x80) != 0) return event_len;
 
+    uint32_t phys_chan = st->chan_map[chan];
+
+    if (velocity == 0) {
+        int ns;
+        for (ns = 0; ns < MAX_NOTES; ns++) {
+            if (st->note_queue[ns].chan == chan && st->note_queue[ns].num == note) {
+                st->note_queue[ns].chan = 0xFF;
+                if (st->chan_map[chan & 0x0F] < NUM_CHANS)
+                    xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan], (uint32_t)-1);
+                xmidi32_send_note_off(phys_chan, note, 0);
+                xm32_atomic_dec16(&st->note_count);
+                break;
+            }
+        }
+        return event_len;
+    }
+
     uint32_t slot;
     for (slot = 0; slot < MAX_NOTES; slot++) {
         if (st->note_queue[slot].chan == 0xFF) break;
@@ -35,8 +52,6 @@ uint32_t xmidi32_XMIDI_note_on(struct sequence_state *st) {
     } else {
         xm32_atomic_inc16(&st->note_count);
     }
-
-    uint32_t phys_chan = st->chan_map[chan];
 
     st->note_queue[slot].chan = (uint8_t)chan;
     st->note_queue[slot].num = note;

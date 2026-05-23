@@ -63,6 +63,7 @@ extern int32_t current_handle;
 extern uint32_t service_active;
 extern int32_t (*trigger_fn)(int32_t, int32_t);
 
+
 extern struct ctrl_log global_controls;
 extern uint8_t global_program[NUM_CHANS];
 extern uint8_t global_pitch_l[NUM_CHANS];

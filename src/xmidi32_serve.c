@@ -134,6 +134,29 @@ void xmidi32_serve_driver(void) {
                 uint32_t ev_size = xmidi32_XMIDI_note_on(st);
                 st->EVNT_ptr += ev_size;
                 if (st->status != SEQ_PLAYING) continue;
+                goto end_event;
+            }
+
+            if (ctrl == 0x80) {
+                phys_chan = st->chan_map[log_chan];
+                if ((lock_status[log_chan] & 0x80) != 0) {
+                    st->EVNT_ptr += 3;
+                    goto end_event;
+                }
+                int ns;
+                for (ns = 0; ns < MAX_NOTES; ns++) {
+                    if (st->note_queue[ns].chan == log_chan &&
+                        st->note_queue[ns].num == data1) {
+                        st->note_queue[ns].chan = 0xFF;
+                        if (st->chan_map[log_chan & 0x0F] < NUM_CHANS)
+                            xm32_atomic_add((volatile uint32_t *)&active_notes[phys_chan], (uint32_t)-1);
+                        xmidi32_send_note_off(phys_chan, data1, data2);
+                        xm32_atomic_dec16(&st->note_count);
+                        break;
+                    }
+                }
+                st->EVNT_ptr += 3;
+                goto end_event;
             }
 
 end_event:
