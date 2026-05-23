@@ -51,7 +51,7 @@ void xmidi32_serve_driver(void) {
             }
         }
 
-        {
+        while (1) {
             uint32_t status = st->EVNT_ptr[0];
             uint32_t phys_chan;
 
@@ -70,12 +70,12 @@ void xmidi32_serve_driver(void) {
                 if (log_chan == 0x0F) {
                     uint32_t meta_len = xmidi32_XMIDI_meta(st);
                     st->EVNT_ptr += meta_len;
-                    if (st->status != SEQ_PLAYING) continue;
+                    if (st->status != SEQ_PLAYING) goto next_seq;
                 } else {
                     uint32_t sysex_len = xmidi32_XMIDI_sysex(st);
                     st->EVNT_ptr += sysex_len;
                 }
-                goto end_event;
+                goto next_event;
             }
 
             if (ctrl == 0xE0) {
@@ -86,22 +86,22 @@ void xmidi32_serve_driver(void) {
                 phys_chan = st->chan_map[log_chan];
                 if ((lock_status[log_chan] & 0x80) != 0) {
                     st->EVNT_ptr += 3;
-                    goto end_event;
+                    goto next_event;
                 }
                 xmidi32_send_raw_message(0xE0 | phys_chan, data1, data2);
                 st->EVNT_ptr += 3;
-                goto end_event;
+                goto next_event;
             }
 
             if (ctrl == 0xD0) {
                 phys_chan = st->chan_map[log_chan];
                 if ((lock_status[log_chan] & 0x80) != 0) {
                     st->EVNT_ptr += 2;
-                    goto end_event;
+                    goto next_event;
                 }
                 xmidi32_send_raw_message(0xD0 | phys_chan, data1, 0);
                 st->EVNT_ptr += 2;
-                goto end_event;
+                goto next_event;
             }
 
             if (ctrl == 0xC0) {
@@ -110,39 +110,39 @@ void xmidi32_serve_driver(void) {
                 phys_chan = st->chan_map[log_chan];
                 if ((lock_status[log_chan] & 0x80) != 0) {
                     st->EVNT_ptr += 2;
-                    goto end_event;
+                    goto next_event;
                 }
                 xmidi32_send_program_change(phys_chan, data1);
                 st->EVNT_ptr += 2;
-                goto end_event;
+                goto next_event;
             }
 
             if (ctrl == 0xB0) {
                 uint32_t ev_size = xmidi32_XMIDI_control(st, log_chan, data1, data2);
                 st->EVNT_ptr += ev_size;
-                if (st->status != SEQ_PLAYING) continue;
-                goto end_event;
+                if (st->status != SEQ_PLAYING) goto next_seq;
+                goto next_event;
             }
 
             if (ctrl == 0xA0) {
                 uint32_t ev_size = xmidi32_XMIDI_note_on(st);
                 st->EVNT_ptr += ev_size;
-                if (st->status != SEQ_PLAYING) continue;
-                goto end_event;
+                if (st->status != SEQ_PLAYING) goto next_seq;
+                goto next_event;
             }
 
             if (ctrl == 0x90) {
                 uint32_t ev_size = xmidi32_XMIDI_note_on(st);
                 st->EVNT_ptr += ev_size;
-                if (st->status != SEQ_PLAYING) continue;
-                goto end_event;
+                if (st->status != SEQ_PLAYING) goto next_seq;
+                goto next_event;
             }
 
             if (ctrl == 0x80) {
                 phys_chan = st->chan_map[log_chan];
                 if ((lock_status[log_chan] & 0x80) != 0) {
                     st->EVNT_ptr += 3;
-                    goto end_event;
+                    goto next_event;
                 }
                 int ns;
                 for (ns = 0; ns < MAX_NOTES; ns++) {
@@ -157,11 +157,11 @@ void xmidi32_serve_driver(void) {
                     }
                 }
                 st->EVNT_ptr += 3;
-                goto end_event;
+                goto next_event;
             }
 
-end_event:
-            if (st->status != SEQ_PLAYING) continue;
+next_event:
+            if (st->status != SEQ_PLAYING) goto next_seq;
             (void)phys_chan;
             (void)ctrl;
             (void)log_chan;
@@ -187,14 +187,13 @@ check_beat:
         }
 
         if (st->tempo_percent != st->tempo_target) {
-            int32_t tempo_grad = st->tempo_accum + (QUANT_TIME / 100);
+            int32_t tempo_rem = st->tempo_accum + (QUANT_TIME / 100);
             int32_t steps = 0;
-            int32_t tempo_rem = tempo_grad;
-            do {
+            while (tempo_rem >= st->tempo_period) {
                 steps++;
                 tempo_rem -= st->tempo_period;
-            } while (tempo_rem >= 0);
-            st->tempo_accum = tempo_rem + st->tempo_period;
+            }
+            st->tempo_accum = tempo_rem;
             int32_t new_tempo = st->tempo_percent;
             if (new_tempo < st->tempo_target) {
                 new_tempo += steps;
@@ -207,14 +206,13 @@ check_beat:
         }
 
         if (st->vol_percent != st->vol_target) {
-            int32_t vol_grad = st->vol_accum + (QUANT_TIME / 100);
+            int32_t vol_rem = st->vol_accum + (QUANT_TIME / 100);
             int32_t steps = 0;
-            int32_t vol_rem = vol_grad;
-            do {
+            while (vol_rem >= st->vol_period) {
                 steps++;
                 vol_rem -= st->vol_period;
-            } while (vol_rem >= 0);
-            st->vol_accum = vol_rem + st->vol_period;
+            }
+            st->vol_accum = vol_rem;
             int32_t new_vol = st->vol_percent;
             if (new_vol < st->vol_target) {
                 new_vol += steps;
@@ -228,6 +226,7 @@ check_beat:
         }
 
         if (st->tempo_error >= 100) goto rep_interval;
+next_seq: ;
     }
 
 done_synth:

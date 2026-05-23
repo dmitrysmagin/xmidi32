@@ -11,15 +11,15 @@ static void sdl_audio_callback(void *userdata, uint8_t *stream, int len) {
     uint32_t samples = (uint32_t)len / 4;
     uint32_t spt = (uint32_t)((uint64_t)44100 * 8333ULL / 1000000ULL);
 
-    sdl_accum += samples;
-    while (sdl_accum >= spt) {
-        sdl_accum -= spt;
-        xmidi32_serve_driver();
-    }
+    for (unsigned int i = 0; i < samples; i++) {
+        if (sdl_accum > spt) {
+            sdl_accum = 0;
+            xmidi32_serve_driver();
+        }
 
-    uint32_t i;
-    for (i = 0; i < samples; i++)
         OPL3_GenerateResampled(xmi_backend_get_chip(), buf + i * 2);
+        sdl_accum++;
+    }
 }
 
 int sdl_audio_init(uint32_t sample_rate) {

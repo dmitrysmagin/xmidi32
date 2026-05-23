@@ -201,7 +201,11 @@ int main(int argc, char *argv[]) {
     }
     xmidi32_define_timbre_cache(0, cache, TIMBRE_CACHE_SIZE);
 
-    timbre_bank_load_ad();
+    #if SYNTH_TYPE == YM3812
+    timbre_bank_load_op();
+    #else
+    timbre_bank_load_opl();
+    #endif
 
     int nseqs = argc - 1;
     struct sequence_state *states = (struct sequence_state *)
