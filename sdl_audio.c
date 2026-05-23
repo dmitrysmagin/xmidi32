@@ -13,13 +13,14 @@ static void sdl_audio_callback(void *userdata, uint8_t *stream, int len) {
     opl3_chip *chip = xmi_backend_get_chip();
     uint32_t spt = g_samples_per_tick;
 
+    g_sample_accum += samples;
+    while (g_sample_accum >= spt) {
+        g_sample_accum -= spt;
+        xmidi32_serve_driver();
+    }
+
     uint32_t i;
     for (i = 0; i < samples; i++) {
-        g_sample_accum++;
-        if (g_sample_accum >= spt) {
-            g_sample_accum -= spt;
-            xmidi32_serve_driver();
-        }
         OPL3_GenerateResampled(chip, buf + i * 2);
     }
 }

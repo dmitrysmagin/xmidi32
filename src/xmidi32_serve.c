@@ -16,8 +16,8 @@ void xmidi32_serve_driver(void) {
 
         int32_t tempo_err = st->tempo_error + st->tempo_percent;
         st->tempo_error = tempo_err;
-        if (tempo_err >= st->tempo_percent) {
-            st->tempo_error = tempo_err - st->tempo_percent;
+        if (tempo_err >= 100) {
+            st->tempo_error = tempo_err - 100;
             if (st->note_count == 0) {
                 if (st->interval_cnt > 0) {
                     st->interval_cnt--;
@@ -41,11 +41,9 @@ void xmidi32_serve_driver(void) {
                         xm32_atomic_dec16(&st->note_count);
                     }
                 }
-                if (st->note_count == 0) {
-                    if (st->interval_cnt > 0) {
-                        st->interval_cnt--;
-                        goto check_beat;
-                    }
+                if (st->interval_cnt > 0) {
+                    st->interval_cnt--;
+                    goto check_beat;
                 }
             }
         }
