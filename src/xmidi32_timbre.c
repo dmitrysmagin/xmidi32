@@ -49,18 +49,19 @@ uint32_t xmidi32_timbre_request(HDRIVER h, HSEQUENCE seq) {
 
     if (chunk_len < 2) return 0xFFFFFFFFU;
 
-    uint32_t offset = 8;
-    uint32_t count = read_le_16(timb + offset);
-    offset += 2;
+    const uint8_t *data = timb + 8;
+    uint32_t data_len = chunk_len;
 
+    uint32_t count = read_le_16(data);
     if (count == 0) return 0xFFFFFFFFU;
 
+    uint32_t offset = 2;
     uint32_t i;
     for (i = 0; i < count; i++) {
-        if (offset + 1 >= chunk_len) break;
+        if (offset + 1 >= data_len) break;
 
-        uint32_t patch = (uint32_t)timb[offset];
-        uint32_t bank  = (uint32_t)timb[offset + 1];
+        uint32_t patch = (uint32_t)data[offset];
+        uint32_t bank  = (uint32_t)data[offset + 1];
         uint32_t gnum  = (bank << 8) | patch;
 
         if (yamaha_timbre_status(bank, patch) == 0) {
