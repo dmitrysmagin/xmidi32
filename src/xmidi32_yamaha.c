@@ -295,17 +295,10 @@ static void do_install_timbre(uint16_t gnum, const void *data) {
     uint32_t idx = index_timbre(gnum);
     if (idx != 0xFFFFFFFF) {
         if (data != NULL) {
-            int32_t slot = -1;
-            int32_t i;
-            for (i = 0; i < (int32_t)MAX_TIMBS; i++) {
-                if (!(timb_attribs[i] & 0x80)) { slot = i; break; }
-            }
-            if (slot >= 0) {
-                int32_t ch;
-                for (ch = 0; ch < (int32_t)NUM_CHANS_MAX; ch++) {
-                    if (MIDI_program[ch] == num && MIDI_bank[ch] == bank) {
-                        MIDI_timbre[ch] = (int8_t)slot;
-                    }
+            int32_t ch;
+            for (ch = 0; ch < (int32_t)NUM_CHANS_MAX; ch++) {
+                if (MIDI_program[ch] == num && MIDI_bank[ch] == bank) {
+                    MIDI_timbre[ch] = (int8_t)idx;
                 }
             }
         }
@@ -679,7 +672,7 @@ static void update_voice(int32_t slot) {
         }
 
         if (S_update[slot] & U_FBC) {
-            int32_t fbc = (uint8_t)(((S_FBC[slot] & 1) | 0x30) & 0xFF);
+            int32_t fbc = (uint8_t)(((S_FBC[slot] & 1) | 0x30 | ((S_fb_val[slot] >> 3) & 0x0E)) & 0xFF);
 #if SYNTH_TYPE == YMF262
             uint8_t pan = MIDI_pan[S_channel[slot] & 0x0F];
             if (pan <= R_PAN_THRESH) {
