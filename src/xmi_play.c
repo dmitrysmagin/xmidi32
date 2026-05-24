@@ -104,8 +104,9 @@ int main(int argc, char *argv[]) {
 
     if (argc < 2) {
         fprintf(stderr, "Usage:\n");
-        fprintf(stderr, "  xmi_play <file.xmi> [sequence_num]         Play via SDL audio\n");
-        fprintf(stderr, "  xmi_play --wav <file.xmi> [sequence_num]   Render to WAV\n");
+        fprintf(stderr, "  xmi_play <file.xmi> [sequence_num] [bank_file]         Play via SDL audio\n");
+        fprintf(stderr, "  xmi_play --wav <file.xmi> [sequence_num] [bank_file]   Render to WAV\n");
+        fprintf(stderr, "  bank_file: .opl / .ad (GTL format) or .bnk (standard AdLib BNK1)\n");
         return 1;
     }
 
@@ -120,10 +121,31 @@ int main(int argc, char *argv[]) {
     }
 
     path = argv[arg_idx++];
-    if (arg_idx < argc) {
-        char *end;
-        long n = strtol(argv[arg_idx], &end, 10);
-        if (*end == '\0') seq_num = (int)n;
+
+    while (arg_idx < argc) {
+        const char *arg = argv[arg_idx];
+        const char *dot = strrchr(arg, '.');
+        int is_bank = 0;
+
+        if (dot) {
+            char e0 = dot[1]; if (e0 >= 'A' && e0 <= 'Z') e0 += 0x20;
+            char e1 = dot[2]; if (e1 >= 'A' && e1 <= 'Z') e1 += 0x20;
+            char e2 = dot[3]; if (e2 >= 'A' && e2 <= 'Z') e2 += 0x20;
+            if ((e0 == 'o' && e1 == 'p' && e2 == 'l') ||
+                (e0 == 'a' && e1 == 'd' && e2 == '\0') ||
+                (e0 == 'b' && e1 == 'n' && e2 == 'k')) {
+                is_bank = 1;
+            }
+        }
+
+        if (is_bank) {
+            timbre_bank_load(arg);
+        } else {
+            char *end;
+            long n = strtol(arg, &end, 10);
+            if (*end == '\0') seq_num = (int)n;
+        }
+        arg_idx++;
     }
 
     return run_seq(path, seq_num, wav_mode_flag);
