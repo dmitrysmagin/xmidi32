@@ -15,9 +15,8 @@ ifdef SYSTEMROOT
   ALL_LDFLAGS += -mconsole
 endif
 
-SRC_FILES = $(wildcard src/*.c)
-GLUE_FILES = opl3.c backend.c sdl_audio.c timbre_bank.c sample_opl.c
-OBJ_FILES = $(SRC_FILES:.c=.o) $(GLUE_FILES:.c=.o)
+SRC_FILES = $(filter-out src/sdltest.c src/dump_wav.c,$(wildcard src/*.c))
+OBJ_FILES = $(SRC_FILES:.c=.o)
 
 all: $(TARGET)
 
@@ -27,7 +26,7 @@ TMP_ENV   := TMP=$(BUILD_TMP) TEMP=$(BUILD_TMP) TMPDIR=$(BUILD_TMP)
 $(BUILD_TMP):
 	mkdir -p $(BUILD_TMP)
 
-$(TARGET): xmi_play.o $(OBJ_FILES) | $(BUILD_TMP)
+$(TARGET): $(OBJ_FILES) | $(BUILD_TMP)
 	printf '%s\n' $^ > link.rsp
 	$(TMP_ENV) $(CC) $(CFLAGS) $(SDL_CFLAGS) -o $@ @link.rsp $(ALL_LDFLAGS)
 	rm -f link.rsp
@@ -35,13 +34,13 @@ $(TARGET): xmi_play.o $(OBJ_FILES) | $(BUILD_TMP)
 %.o: %.c | $(BUILD_TMP)
 	$(TMP_ENV) $(CC) $(CFLAGS) $(SDL_CFLAGS) -c -o $@ $<
 
-$(DUMP_TARGET): dump_wav.o $(OBJ_FILES) | $(BUILD_TMP)
+$(DUMP_TARGET): src/dump_wav.o $(filter-out src/xmi_play.o,$(OBJ_FILES)) | $(BUILD_TMP)
 	printf '%s\n' $^ > link.rsp
 	$(TMP_ENV) $(CC) $(CFLAGS) -o $@ @link.rsp $(LDFLAGS) -lm
 	rm -f link.rsp
 
 clean:
-	rm -f $(TARGET) xmi_play.o $(DUMP_TARGET) dump_wav.o $(OBJ_FILES) link.rsp
+	rm -f $(TARGET) $(DUMP_TARGET) $(OBJ_FILES) src/dump_wav.o link.rsp
 	rm -rf $(BUILD_TMP)
 
 .PHONY: all clean
