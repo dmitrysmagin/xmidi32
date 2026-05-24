@@ -4,19 +4,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern const unsigned char g_sample_opl_data[];
-extern unsigned int g_sample_opl_len;
+extern const unsigned char g_fat_opl_data[];
+extern unsigned int g_fat_opl_len;
 
 static const unsigned char *s_bank_data = NULL;
 static unsigned int s_bank_len = 0;
 static int s_dynamic = 0;
 
 static const unsigned char *bank_data(void) {
-    return s_bank_data ? s_bank_data : g_sample_opl_data;
+    return s_bank_data ? s_bank_data : g_fat_opl_data;
 }
 
 static unsigned int bank_len(void) {
-    return s_bank_data ? s_bank_len : g_sample_opl_len;
+    return s_bank_data ? s_bank_len : g_fat_opl_len;
 }
 
 const unsigned char *timbre_bank_find(unsigned char bank, unsigned char patch) {
