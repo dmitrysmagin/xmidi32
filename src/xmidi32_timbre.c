@@ -1,5 +1,6 @@
 #include "xmidi32_driver.h"
 #include "xmidi32_timbre_internal.h"
+#include "xmidi32_utils.h"
 
 #define DEF_TC_SIZE 3584
 
@@ -36,8 +37,8 @@ uint32_t xmidi32_timbre_request(HDRIVER h, HSEQUENCE seq) {
     const uint8_t *timb = st->TIMB;
     if (timb == NULL) return 0xFFFFFFFFU;
 
-    if (timb[0] != 'B' || timb[1] != 'M' ||
-        timb[2] != 'I' || timb[3] != 'T') {
+    if (timb[0] != 'T' || timb[1] != 'I' ||
+        timb[2] != 'M' || timb[3] != 'B') {
         return 0xFFFFFFFFU;
     }
 
@@ -49,7 +50,7 @@ uint32_t xmidi32_timbre_request(HDRIVER h, HSEQUENCE seq) {
     if (chunk_len < 2) return 0xFFFFFFFFU;
 
     uint32_t offset = 8;
-    uint32_t count = ((uint32_t)timb[offset] << 8) | (uint32_t)timb[offset + 1];
+    uint32_t count = read_le_16(timb + offset);
     offset += 2;
 
     if (count == 0) return 0xFFFFFFFFU;

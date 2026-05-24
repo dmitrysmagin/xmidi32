@@ -14,6 +14,26 @@
 
 static volatile sig_atomic_t g_stop_requested = 0;
 
+static int install_sequence_timbres(HSEQUENCE h) {
+    static const uint8_t dummy_2op[14] = { 0x0E,0x00, 0,0x3F,0xFF,0xFF, 0,0x3F,0xFF,0xFF, 0,0,0,0 };
+    uint32_t treq;
+    int count = 0;
+    while ((treq = xmidi32_timbre_request(0, h)) != 0xFFFFFFFF) {
+        uint8_t bank = (uint8_t)(treq >> 8);
+        uint8_t patch = (uint8_t)(treq & 0xFF);
+        const uint8_t *timb = timbre_bank_find(bank, patch);
+        if (timb != NULL) {
+            yamaha_install_timbre(bank, patch, timb);
+            fprintf(stderr, "Installed timbre bank %u, patch %u\n", bank, patch);
+            count++;
+        } else {
+            yamaha_install_timbre(bank, patch, dummy_2op);
+            fprintf(stderr, "Timbre bank %u, patch %u not found - installed silent\n", bank, patch);
+        }
+    }
+    return count;
+}
+
 static void sigint_handler(int sig) {
     (void)sig;
     g_stop_requested = 1;
@@ -66,7 +86,6 @@ static int run_wav_mode(int argc, char *argv[], int seq_first) {
     void *cache = malloc(TIMBRE_CACHE_SIZE);
     if (!cache) { fprintf(stderr, "Failed to allocate timbre cache\n"); return 1; }
     xmidi32_define_timbre_cache(0, cache, TIMBRE_CACHE_SIZE);
-    timbre_bank_load_ad();
 
     int nseqs = argc - seq_first;
     struct sequence_state *states = (struct sequence_state *)
@@ -92,6 +111,10 @@ static int run_wav_mode(int argc, char *argv[], int seq_first) {
         uint32_t j;
         for (j = 0; j < NUM_CHANS; j++)
             xmidi32_map_seq_channel(h, j + 1, j + 1);
+        if (install_sequence_timbres(h) < 0) {
+            fprintf(stderr, "Failed to install timbres for %s\n", argv[seq_first + i]);
+            continue;
+        }
         xmidi32_start_seq(h);
         registered++;
     }
@@ -203,8 +226,6 @@ int main(int argc, char *argv[]) {
     }
     xmidi32_define_timbre_cache(0, cache, TIMBRE_CACHE_SIZE);
 
-    timbre_bank_load_opl();
-
     int nseqs = argc - 1;
     struct sequence_state *states = (struct sequence_state *)
         calloc((size_t)nseqs, sizeof(struct sequence_state));
@@ -233,6 +254,10 @@ int main(int argc, char *argv[]) {
             xmidi32_map_seq_channel(h, j + 1, j + 1);
         }
 
+        if (install_sequence_timbres(h) < 0) {
+            fprintf(stderr, "Failed to install timbres for %s\n", argv[i + 1]);
+            continue;
+        }
         xmidi32_start_seq(h);
         registered++;
     }

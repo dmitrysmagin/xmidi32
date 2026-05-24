@@ -1,55 +1,27 @@
 #include "timbre_bank.h"
-#include "src/xmidi32_timbre_internal.h"
 #include "src/xmidi32_utils.h"
 
-typedef struct {
-    unsigned char patch;
-    unsigned char bank;
-    unsigned int offset;
-} gtl_entry;
-
-static int parse_gtl(const unsigned char *data, unsigned int len) {
-    const unsigned char *p = data;
-    unsigned int pos = 0;
-    int count = 0;
-
-    while (pos + 6 <= len) {
-        unsigned char patch = p[0];
-        unsigned char bank = p[1];
-        unsigned int offset = read_le_32(p + 2);
-
-        if (bank == 0xFF) {
-            break;
-        }
-
-        if (offset > 0 && offset + 2 <= len) {
-            const unsigned char *bnk = data + offset;
-            yamaha_install_timbre(bank, patch, bnk);
-        } else if (offset + 2 <= len) {
-            yamaha_install_timbre(bank, patch, NULL);
-        }
-
-        pos += 6;
-        p += 6;
-        count++;
-    }
-
-    return count;
-}
-
-extern const unsigned char g_sample_ad_data[];
-extern unsigned int g_sample_ad_len;
 extern const unsigned char g_sample_opl_data[];
 extern unsigned int g_sample_opl_len;
 
-int timbre_bank_load_ad(void) {
-    return parse_gtl(g_sample_ad_data, g_sample_ad_len);
-}
+const unsigned char *timbre_bank_find(unsigned char bank, unsigned char patch) {
+    const unsigned char *data = g_sample_opl_data;
+    unsigned int len = g_sample_opl_len;
+    unsigned int pos = 0;
 
-int timbre_bank_load_opl(void) {
-    return parse_gtl(g_sample_opl_data, g_sample_opl_len);
-}
+    while (pos + 6 <= len) {
+        unsigned char p = data[pos];
+        unsigned char b = data[pos + 1];
+        unsigned int offset = read_le_32(data + pos + 2);
 
-int timbre_bank_parse(const unsigned char *data, unsigned int len) {
-    return parse_gtl(data, len);
+        if (b == 0xFF) break;
+
+        if (b == bank && p == patch) {
+            if (offset > 0 && offset + 2 <= len) {
+                return data + offset;
+            }
+        }
+        pos += 6;
+    }
+    return NULL;
 }

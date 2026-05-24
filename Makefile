@@ -16,7 +16,7 @@ ifdef SYSTEMROOT
 endif
 
 SRC_FILES = $(wildcard src/*.c)
-GLUE_FILES = opl3.c backend.c sdl_audio.c timbre_bank.c sample_ad.c sample_opl.c
+GLUE_FILES = opl3.c backend.c sdl_audio.c timbre_bank.c sample_opl.c
 OBJ_FILES = $(SRC_FILES:.c=.o) $(GLUE_FILES:.c=.o)
 
 all: $(TARGET)

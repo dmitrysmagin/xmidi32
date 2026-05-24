@@ -3,13 +3,6 @@
 
 #include <stdint.h>
 
-typedef struct {
-    const unsigned char *data;
-    unsigned int len;
-} bank_data;
-
-int timbre_bank_load_ad(void);
-int timbre_bank_load_opl(void);
-int timbre_bank_parse(const unsigned char *data, unsigned int len);
+const unsigned char *timbre_bank_find(unsigned char bank, unsigned char patch);
 
 #endif

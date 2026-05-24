@@ -32,7 +32,10 @@ int main(int argc, char **argv) {
 
     void *cache = malloc(TIMBRE_CACHE_SIZE);
     xmidi32_define_timbre_cache(0, cache, TIMBRE_CACHE_SIZE);
-    timbre_bank_load_ad();
+    // timbres loaded on demand from sample_opl.c via timbre_bank_find()
+    // during xmidi32_timbre_request / yamaha_install_timbre loop
+    // (not needed for this test dump since all timbres are pre-installed
+    //  by the old approach; TODO: add polling loop)
 
     uint32_t size;
     uint8_t *data = load_file("./xmi/AGU16.XMI", &size);
