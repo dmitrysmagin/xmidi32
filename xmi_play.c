@@ -75,6 +75,12 @@ static void write_wav(const char *path, int16_t *buf, uint32_t total_samples) {
     fprintf(stderr, "Wrote %s (%u samples)\n", path, total_samples);
 }
 
+static int count_xmi_tracks(const uint8_t *data) {
+    int count = 0;
+    while (find_seq((uint8_t *)data, count) != NULL) count++;
+    return count;
+}
+
 static int run_wav_mode(int argc, char *argv[], int seq_first) {
     dro_start("xmi/capture.txt");
     xmi_backend_init();
@@ -88,9 +94,9 @@ static int run_wav_mode(int argc, char *argv[], int seq_first) {
     xmidi32_define_timbre_cache(0, cache, TIMBRE_CACHE_SIZE);
 
     int nseqs = argc - seq_first;
-    struct sequence_state *states = (struct sequence_state *)
-        calloc((size_t)nseqs, sizeof(struct sequence_state));
-    HSEQUENCE *handles = (HSEQUENCE *)calloc((size_t)nseqs, sizeof(HSEQUENCE));
+    struct sequence_state *state_pool = (struct sequence_state *)
+        calloc((size_t)(nseqs * NSEQS), sizeof(struct sequence_state));
+    HSEQUENCE *handles = (HSEQUENCE *)calloc((size_t)(nseqs * NSEQS), sizeof(HSEQUENCE));
     uint8_t **seq_data = (uint8_t **)calloc((size_t)nseqs, sizeof(uint8_t *));
     uint32_t *seq_sizes = (uint32_t *)calloc((size_t)nseqs, sizeof(uint32_t));
 
@@ -102,21 +108,28 @@ static int run_wav_mode(int argc, char *argv[], int seq_first) {
             fprintf(stderr, "Failed to load %s\n", argv[seq_first + i]);
             continue;
         }
-        HSEQUENCE h = xmidi32_register_seq(seq_data[i], 0, &states[registered], NULL);
-        if (h == (HSEQUENCE)-1) {
-            fprintf(stderr, "Failed to register %s\n", argv[seq_first + i]);
+
+        int num_tracks = count_xmi_tracks(seq_data[i]);
+        if (num_tracks == 0) {
+            fprintf(stderr, "No tracks found in %s\n", argv[seq_first + i]);
             continue;
         }
-        handles[registered] = h;
-        uint32_t j;
-        for (j = 0; j < NUM_CHANS; j++)
-            xmidi32_map_seq_channel(h, j + 1, j + 1);
-        if (install_sequence_timbres(h) < 0) {
-            fprintf(stderr, "Failed to install timbres for %s\n", argv[seq_first + i]);
-            continue;
+
+        int t;
+        for (t = 0; t < num_tracks; t++) {
+            HSEQUENCE h = xmidi32_register_seq(seq_data[i], t,
+                                               &state_pool[registered], NULL);
+            if (h == (HSEQUENCE)-1) break;
+            handles[registered] = h;
+            uint32_t j;
+            for (j = 0; j < NUM_CHANS; j++)
+                xmidi32_map_seq_channel(h, j + 1, j + 1);
+            install_sequence_timbres(h);
+            xmidi32_start_seq(h);
+            registered++;
         }
-        xmidi32_start_seq(h);
-        registered++;
+        fprintf(stderr, "Registered %d/%d tracks from %s\n",
+                t, num_tracks, argv[seq_first + i]);
     }
 
     if (registered == 0) {
@@ -132,7 +145,7 @@ static int run_wav_mode(int argc, char *argv[], int seq_first) {
     int16_t *buf = (int16_t *)malloc(WAV_MAX_SAMPLES * 4);
     if (!buf) { fprintf(stderr, "Out of memory\n"); goto wav_cleanup; }
 
-    fprintf(stderr, "Rendering WAV (spt=%u chunk=%u)...\n", spt, chunk);
+    fprintf(stderr, "Rendering WAV (spt=%u chunk=%u registered=%d)...\n", spt, chunk, registered);
 
     while (total < WAV_MAX_SAMPLES && !g_stop_requested) {
         uint32_t todo = chunk;
@@ -181,7 +194,7 @@ wav_cleanup:
     free(cache);
     xmi_backend_shutdown();
     for (i = 0; i < nseqs; i++) free(seq_data[i]);
-    free(states); free(handles); free(seq_data); free(seq_sizes);
+    free(state_pool); free(handles); free(seq_data); free(seq_sizes);
     return 0;
 }
 
@@ -227,9 +240,9 @@ int main(int argc, char *argv[]) {
     xmidi32_define_timbre_cache(0, cache, TIMBRE_CACHE_SIZE);
 
     int nseqs = argc - 1;
-    struct sequence_state *states = (struct sequence_state *)
-        calloc((size_t)nseqs, sizeof(struct sequence_state));
-    HSEQUENCE *handles = (HSEQUENCE *)calloc((size_t)nseqs, sizeof(HSEQUENCE));
+    struct sequence_state *state_pool = (struct sequence_state *)
+        calloc((size_t)(nseqs * NSEQS), sizeof(struct sequence_state));
+    HSEQUENCE *handles = (HSEQUENCE *)calloc((size_t)(nseqs * NSEQS), sizeof(HSEQUENCE));
     uint8_t **seq_data = (uint8_t **)calloc((size_t)nseqs, sizeof(uint8_t *));
     uint32_t *seq_sizes = (uint32_t *)calloc((size_t)nseqs, sizeof(uint32_t));
 
@@ -242,24 +255,29 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        HSEQUENCE h = xmidi32_register_seq(seq_data[i], 0, &states[registered], NULL);
-        if (h == (HSEQUENCE)-1) {
-            fprintf(stderr, "Failed to register sequence %s\n", argv[i + 1]);
+        int num_tracks = count_xmi_tracks(seq_data[i]);
+        if (num_tracks == 0) {
+            fprintf(stderr, "No tracks found in %s\n", argv[i + 1]);
             continue;
         }
-        handles[registered] = h;
 
-        uint32_t j;
-        for (j = 0; j < NUM_CHANS; j++) {
-            xmidi32_map_seq_channel(h, j + 1, j + 1);
-        }
+        int t;
+        for (t = 0; t < num_tracks; t++) {
+            HSEQUENCE h = xmidi32_register_seq(seq_data[i], t,
+                                               &state_pool[registered], NULL);
+            if (h == (HSEQUENCE)-1) break;
+            handles[registered] = h;
 
-        if (install_sequence_timbres(h) < 0) {
-            fprintf(stderr, "Failed to install timbres for %s\n", argv[i + 1]);
-            continue;
+            uint32_t j;
+            for (j = 0; j < NUM_CHANS; j++)
+                xmidi32_map_seq_channel(h, j + 1, j + 1);
+
+            install_sequence_timbres(h);
+            xmidi32_start_seq(h);
+            registered++;
         }
-        xmidi32_start_seq(h);
-        registered++;
+        printf("Registered %d/%d tracks from %s\n",
+               t, num_tracks, argv[i + 1]);
     }
 
     if (registered == 0) {
@@ -302,7 +320,7 @@ cleanup:
     for (i = 0; i < nseqs; i++) {
         free(seq_data[i]);
     }
-    free(states);
+    free(state_pool);
     free(handles);
     free(seq_data);
     free(seq_sizes);

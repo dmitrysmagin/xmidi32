@@ -692,25 +692,24 @@ static void update_voice(int32_t slot) {
                     send_byte((uint8_t)(vi + 3), 0xB0, kb);
                 } else {
                     int32_t ch = S_channel[slot] & 0x0F;
-                    int32_t pb = (((int32_t)MIDI_pitch_h[ch] << 9) | ((int32_t)MIDI_pitch_l[ch] << 2)) - 0x2000;
-                    int32_t range = DEF_PITCH_RANGE;
-                    pb = (pb * range) >> 5;
+                    int32_t pb = (((int32_t)MIDI_pitch_h[ch] << 7) | (int32_t)MIDI_pitch_l[ch]) - 0x2000;
+                    pb >>= 5;
+                    pb *= (int32_t)DEF_PITCH_RANGE;
 
-                    int32_t note = S_note[slot] + S_transpose[slot] - 24;
+                    int32_t note = S_note[slot] + S_transpose[slot] - 12;
                     while (note < 0) note += 12;
                     while (note >= 96) note -= 12;
 
-                    note = (note << 4) + 8;
+                    int32_t val = note * 256 + pb + 8;
+                    val >>= 4;
+                    val -= 192;
+                    while (val < 0) val += 192;
+                    while (val >= 1536) val -= 192;
 
-                    note += pb;
-                    note -= 192;
-                    while (note < 0) note += 192;
-                    while (note >= 1536) note -= 192;
-
-                    int32_t idx = note >> 4;
+                    int32_t idx = val >> 4;
                     uint8_t htone = note_halftone[idx];
-                    int32_t tbl_idx = ((htone << 5) | (note & 0x0F)) >> 1;
-                    uint16_t fval = freq_table[tbl_idx];
+                    int32_t word_idx = (htone << 4) + (val & 0x0F);
+                    uint16_t fval = freq_table[word_idx];
 
                     int32_t oct = note_octave[idx];
                     oct--;
@@ -733,25 +732,24 @@ static void update_voice(int32_t slot) {
                     send_byte((uint8_t)vi, 0xB0, kb);
                 } else {
                     int32_t ch = S_channel[slot] & 0x0F;
-                    int32_t pb = (((int32_t)MIDI_pitch_h[ch] << 9) | ((int32_t)MIDI_pitch_l[ch] << 2)) - 0x2000;
-                    int32_t range = DEF_PITCH_RANGE;
-                    pb = (pb * range) >> 5;
+                    int32_t pb = (((int32_t)MIDI_pitch_h[ch] << 7) | (int32_t)MIDI_pitch_l[ch]) - 0x2000;
+                    pb >>= 5;
+                    pb *= (int32_t)DEF_PITCH_RANGE;
 
-                    int32_t note = S_note[slot] + S_transpose[slot] - 24;
+                    int32_t note = S_note[slot] + S_transpose[slot] - 12;
                     while (note < 0) note += 12;
                     while (note >= 96) note -= 12;
 
-                    note = (note << 4) + 8;
+                    int32_t val = note * 256 + pb + 8;
+                    val >>= 4;
+                    val -= 192;
+                    while (val < 0) val += 192;
+                    while (val >= 1536) val -= 192;
 
-                    note += pb;
-                    note -= 192;
-                    while (note < 0) note += 192;
-                    while (note >= 1536) note -= 192;
-
-                    int32_t idx = note >> 4;
+                    int32_t idx = val >> 4;
                     uint8_t htone = note_halftone[idx];
-                    int32_t tbl_idx = ((htone << 5) | (note & 0x0F)) >> 1;
-                    uint16_t fval = freq_table[tbl_idx];
+                    int32_t word_idx = (htone << 4) + (val & 0x0F);
+                    uint16_t fval = freq_table[word_idx];
 
                     int32_t oct = note_octave[idx];
                     oct--;
