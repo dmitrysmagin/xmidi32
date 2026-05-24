@@ -8,6 +8,7 @@
 #include "timbre_bank.h"
 #include "src/xmidi32_driver.h"
 #include "src/xmidi32_timbre_internal.h"
+#include "src/xmidi32_utils.h"
 
 #define TIMBRE_CACHE_SIZE 12288
 #define WAV_MAX_SAMPLES   (44100 * 120)
@@ -79,6 +80,19 @@ static int count_xmi_tracks(const uint8_t *data) {
     int count = 0;
     while (find_seq((uint8_t *)data, count) != NULL) count++;
     return count;
+}
+
+static int has_for_loop(const struct sequence_state *state) {
+    if (!state || !state->EVNT) return 0;
+    uint32_t len = read_be32(state->EVNT + 4);
+    if (len < 3) return 0;
+    uint8_t *data = state->EVNT + 8;
+    uint32_t i;
+    for (i = 0; i + 2 < len; i++) {
+        if ((data[i] & 0xF0) == 0xB0 && data[i + 1] == 0x74)
+            return 1;
+    }
+    return 0;
 }
 
 static int run_seq(const char *path, int seq_num, int wav_mode);
@@ -165,6 +179,11 @@ static int run_seq(const char *path, int seq_num, int wav_mode) {
         xmidi32_map_seq_channel(h, j + 1, j + 1);
 
     install_sequence_timbres(h);
+
+    int has_loop = has_for_loop(state);
+    if (has_loop)
+        fprintf(stderr, "Sequence uses loops - will stop after one complete playthrough.\n");
+
     xmidi32_start_seq(h);
 
     if (wav_mode) {
@@ -172,6 +191,8 @@ static int run_seq(const char *path, int seq_num, int wav_mode) {
         uint32_t accum = 0;
         uint32_t total = 0;
         uint32_t chunk = 1024;
+        int loop_count = 0;
+        uint8_t *max_evnt = state->EVNT_ptr;
 
         int16_t *buf = (int16_t *)malloc(WAV_MAX_SAMPLES * 4);
         if (!buf) { fprintf(stderr, "Out of memory\n"); goto wav_done; }
@@ -198,6 +219,18 @@ static int run_seq(const char *path, int seq_num, int wav_mode) {
 
             if (xmidi32_get_seq_status(h) != SEQ_PLAYING)
                 break;
+
+            if (has_loop) {
+                if (state->EVNT_ptr > max_evnt)
+                    max_evnt = state->EVNT_ptr;
+                else if (state->EVNT_ptr < max_evnt - 10) {
+                    loop_count++;
+                    if (loop_count >= 1) {
+                        fprintf(stderr, "Loop detected, stopping render.\n");
+                        break;
+                    }
+                }
+            }
         }
 
         dro_stop();
