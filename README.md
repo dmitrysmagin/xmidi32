@@ -93,42 +93,57 @@ All original MASM source files have been moved into the `ail32_V105/` subdirecto
 
 ## Architecture Diagram
 
+All source files reside under `src/`:
+
 ```
-xmidi32.h
-  ├── xmidi32_config.h (equates, controller #s)
-  ├── xmidi32_types.h  (ctrl_log, sequence_state structs)
-  ├── xmidi32_driver.h (function decls, API indices, globals)
-  │   ├── xmidi32_backend.h  (hardware abstraction)
-  │   └── xmidi32_critical.h (atomic ops)
+xmidi32.h (in src/)
+  ├── xmidi32_config.h
+  ├── xmidi32_types.h
+  ├── xmidi32_driver.h
+  │   ├── xmidi32_backend.h
+  │   └── xmidi32_critical.h
   │
-  ├── xmidi32_utils.c/h   (read_be32, read_vln, ul_divide, advance_count)
-  ├── xmidi32_globals.c   (global state variables)
-  ├── xmidi32_dispatch.c  (driver_index table, DDT, describe_driver)
+  ├── xmidi32_utils.c/h
+  ├── xmidi32_globals.c
+  ├── xmidi32_dispatch.c
   │
-  ├── xmidi32_api.c       (start/stop/resume/release/get_status/install_callback)
-  ├── xmidi32_init.c      (init_driver, shutdown_driver)
-  ├── xmidi32_serve.c     (serve_driver — main service loop)
-  ├── xmidi32_register.c  (register_seq, rewind_seq)
-  ├── xmidi32_find_seq.c  (find_seq — IFF parser)
-  ├── xmidi32_flush.c     (flush_note_queue, flush_channel_notes)
-  ├── xmidi32_reset.c/h   (reset_sequence, restore_sequence)
-  ├── xmidi32_control.c/h (XMIDI_control)
-  ├── xmidi32_note_on.c   (XMIDI_note_on)
-  ├── xmidi32_meta.c      (XMIDI_meta)
-  ├── xmidi32_sysex.c     (XMIDI_sysex)
-  ├── xmidi32_volume.c    (XMIDI_volume)
-  ├── xmidi32_channel.c   (lock_channel, release_channel)
-  ├── xmidi32_count.c     (get_beat_count, get_bar_count)
-  ├── xmidi32_tempo.c     (get/set rel tempo/volume, controller I/O, channel mapping, branch_index)
-  ├── xmidi32_midi.c      (MIDI send wrappers)
+  ├── xmidi32_api.c
+  ├── xmidi32_init.c
+  ├── xmidi32_serve.c
+  ├── xmidi32_register.c
+  ├── xmidi32_find_seq.c
+  ├── xmidi32_flush.c
+  ├── xmidi32_reset.c/h
+  ├── xmidi32_control.c/h
+  ├── xmidi32_note_on.c
+  ├── xmidi32_meta.c
+  ├── xmidi32_sysex.c
+  ├── xmidi32_volume.c
+  ├── xmidi32_channel.c
+  ├── xmidi32_count.c
+  ├── xmidi32_tempo.c
+  ├── xmidi32_midi.c
   │
-  ├── xmidi32_timbre.c       (timbre cache API)
+  ├── xmidi32_timbre.c
   ├── xmidi32_timbre_internal.h
-  ├── xmidi32_yamaha.c       (Yamaha OPL2/OPL3 driver)
+  ├── xmidi32_yamaha.c
   ├── xmidi32_yamaha.h
-  ├── xmidi32_yamaha_tables.c (data tables)
+  ├── xmidi32_yamaha_tables.c
   ├── xmidi32_yamaha_tables.h
-  └── xmidi32_yamaha_stub.c  (stub for non-Yamaha backends)
+  └── xmidi32_yamaha_stub.c
+```
+
+The following companion modules (also in `src/`) are not part of the core library:
+
+```
+opl3.c/h         — Nuked OPL3 emulator
+backend.c/h      — backend interface (reset/init/serve/IO)
+sdl_audio.c/h    — SDL2 audio output
+timbre_bank.c/h  — pre-installed OPL3 instrument bank
+sample_opl.c     — SAMPLE.OPL binary data (identical to SAMPLE.AD)
+xmi_play.c       — CLI player entry point
+dump_wav.c       — WAV dump utility
+sdltest.c        — SDL audio test tool
 ```
 
 ## Verification Results

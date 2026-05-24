@@ -26,6 +26,22 @@
 - [x] **Volume gradient `> 0` instead of `>= period`** (`src/xmidi32_serve.c:212`)
   ASM uses `jge` (signed `>= 0`) after `sub eax,period`, which is `>= period` in C. C uses `> 0`. When `vol_rem` is between 1 and `period-1`, ASM does 0 steps (correct), C does 1 step (wrong). Fix: change `while (vol_rem > 0)` to `while (vol_rem >= st->vol_period)`.
 
+- [x] **serve_driver `rep_interval` re-adds `tempo_percent` on tick loopback** (`src/xmidi32_serve.c`)
+  When `tempo_error >= 100` after gradient processing, ASM decrements by 100 and jumps to `rep_interval` **without** re-adding `tempo_percent`. C was re-adding `tempo_percent`, causing runaway ticks at high tempo. Fix: remove `tempo_percent` re-add on `goto rep_interval`.
+
+- [x] **`interval_cnt` wrap matches signed semantics** (`src/xmidi32_serve.c`)
+  `interval_cnt` is `uint16_t` in the struct. ASM does `dec [dw_val]; jle` (signed 16-bit), so 0→0xFFFF wraps to -1 and fires the event. C's `uint16_t` never went negative when wrapping (0→65535), causing events with interval=0 or interval=1 to never fire. Fix: cast to `(int16_t)` before the `<= 0` check.
+
+- [x] **Pitch bend centering offset** (`src/xmidi32_yamaha.c:675`)
+  MIDI pitch bend 14-bit value was shifted left by 2 (`<<9` + `<<2`) and center-subtracted `0x2000` instead of `0x8000` (= `0x2000 << 2`). Fix: use `((pitch_h<<7 | pitch_l) - 0x2000) >> 5 * range`, matching ASM's `sub ax,2000h; imul range; sar ax,5`.
+
+- [x] **Frequency computation: note offset, note+pb combination, table indexing** (`src/xmidi32_yamaha.c:695-726,735-767`)
+  Three algorithmic differences from ASM `__FREQ`:
+  1. Note normalization: `note - 12` (not -24). ASM does `sub 24; add 12; add 12; sub 12` = net -12.
+  2. Note+pb: `(note * 256 + pb + 8) >> 4 - 192` (not `(note << 4) + 8 + pb - 192`). ASM adds MIDI note to AH (high byte of pb word).
+  3. Table index: `(htone << 4) + (val & 0x0F)` (not `((htone << 5) | (val & 0x0F)) >> 1`). ASM does byte offset `(htone<<5) + ((val<<1)&31)` then `>> 1` for word index; `>>1` loses LSB of fine nibble.
+  Fix: matched ASM byte-for-byte; verified against Python simulation (26/27 test cases match).
+
 ---
 
 ## HIGH — Functional Issues
