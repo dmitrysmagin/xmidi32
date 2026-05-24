@@ -1063,7 +1063,7 @@ void yamaha_program_change(uint32_t chan, uint32_t program) {
     uint16_t gnum = (uint16_t)((MIDI_bank[chan] << 8) | (program & 0xFF));
     uint32_t idx = index_timbre(gnum);
     MIDI_timbre[chan] = (int8_t)idx;
-    //printf("PROG_CHANGE chan=%d prog=%d bank=%d timb_idx=%d\n", chan, program, MIDI_bank[chan], idx);
+    printf("PROG_CHANGE chan=%d prog=%d bank=%d timb_idx=%d\n", chan, program, MIDI_bank[chan], idx);
 }
 
 void yamaha_pitch_bend(uint32_t chan, uint32_t pitch_l, uint32_t pitch_h) {
