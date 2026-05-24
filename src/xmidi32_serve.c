@@ -17,40 +17,33 @@ void xmidi32_serve_driver(void) {
         if (st == NULL) continue;
         if (st->status != SEQ_PLAYING) continue;
 
-    rep_interval:
-        ;
         int32_t tempo_err = st->tempo_error + st->tempo_percent;
         st->tempo_error = tempo_err;
-        if (tempo_err >= 100) {
-            st->tempo_error = tempo_err - 100;
-            if (st->note_count == 0) {
-                if (st->interval_cnt > 0) {
-                    st->interval_cnt--;
-                    goto check_beat;
-                }
-            } else {
-                int note_slot;
-                for (note_slot = 0; note_slot < MAX_NOTES; note_slot++) {
-                    if (st->note_queue[note_slot].chan == 0xFF) continue;
-                    st->note_queue[note_slot].time--;
-                    if (st->note_queue[note_slot].time < 0) {
-                        uint8_t chan = st->note_queue[note_slot].chan;
-                        uint8_t note = st->note_queue[note_slot].num;
-                        st->note_queue[note_slot].chan = 0xFF;
-                        if (st->chan_map[chan & 0x0F] < NUM_CHANS) {
-                            uint32_t pc = st->chan_map[chan & 0x0F];
-                            active_notes[pc]--;
-                        }
-                        xmidi32_send_note_off(st->chan_map[chan & 0x0F], note, 0);
-                        st->note_count--;
+        if (tempo_err < 100) goto check_gradients;
+        st->tempo_error = tempo_err - 100;
+
+    process_tick:
+        if (st->note_count != 0) {
+            int note_slot;
+            for (note_slot = 0; note_slot < MAX_NOTES; note_slot++) {
+                if (st->note_queue[note_slot].chan == 0xFF) continue;
+                st->note_queue[note_slot].time--;
+                if (st->note_queue[note_slot].time < 0) {
+                    uint8_t chan = st->note_queue[note_slot].chan;
+                    uint8_t note = st->note_queue[note_slot].num;
+                    st->note_queue[note_slot].chan = 0xFF;
+                    if (st->chan_map[chan & 0x0F] < NUM_CHANS) {
+                        uint32_t pc = st->chan_map[chan & 0x0F];
+                        active_notes[pc]--;
                     }
-                }
-                if (st->interval_cnt > 0) {
-                    st->interval_cnt--;
-                    goto check_beat;
+                    xmidi32_send_note_off(st->chan_map[chan & 0x0F], note, 0);
+                    st->note_count--;
                 }
             }
         }
+
+        st->interval_cnt--;
+        if ((int16_t)st->interval_cnt > 0) goto check_beat;
 
         while (1) {
             uint32_t status = st->EVNT_ptr[0];
@@ -187,6 +180,12 @@ check_beat:
             }
         }
 
+        if (st->tempo_error >= 100) {
+            st->tempo_error -= 100;
+            goto process_tick;
+        }
+
+check_gradients:
         if (st->tempo_percent != st->tempo_target) {
             int32_t tempo_rem = st->tempo_accum + (QUANT_TIME / 100);
             int32_t steps = 0;
@@ -226,7 +225,6 @@ check_beat:
             xmidi32_XMIDI_volume(st);
         }
 
-        if (st->tempo_error >= 100) goto rep_interval;
 next_seq: ;
     }
 
