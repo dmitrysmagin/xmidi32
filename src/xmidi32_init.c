@@ -84,6 +84,10 @@ void xmidi32_shutdown(void) {
     init_OK = 0;
 }
 
+static void xmidi32_write_display(const char *s) {
+    (void)s;
+}
+
 void xmidi32_shutdown_driver(HDRIVER h, const char *msg) {
     (void)h;
     if (init_OK == 0) return;

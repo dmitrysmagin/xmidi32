@@ -9,53 +9,7 @@ typedef int32_t HTIMER;
 typedef int32_t HDRIVER;
 typedef int32_t HSEQUENCE;
 
-struct driver_entry {
-    uint32_t service;
-    void *address;
-};
 
-#define AIL_DESC_DRVR         100
-#define AIL_DET_DEV           101
-#define AIL_INIT_DRVR         102
-#define AIL_SERVE_DRVR        103
-#define AIL_SHUTDOWN_DRVR     104
-#define AIL_STATE_TAB_SIZE    150
-#define AIL_REG_SEQ           151
-#define AIL_REL_SEQ_HND       152
-#define AIL_T_CACHE_SIZE      153
-#define AIL_DEFINE_T_CACHE    154
-#define AIL_T_REQ             155
-#define AIL_INSTALL_T         156
-#define AIL_PROTECT_T         157
-#define AIL_UNPROTECT_T       158
-#define AIL_T_STATUS          159
-#define AIL_START_SEQ         170
-#define AIL_STOP_SEQ          171
-#define AIL_RESUME_SEQ        173
-#define AIL_SEQ_STAT          174
-#define AIL_REL_VOL           175
-#define AIL_REL_TEMPO         176
-#define AIL_SET_REL_VOL       177
-#define AIL_SET_REL_TEMPO     178
-#define AIL_BEAT_CNT          179
-#define AIL_BAR_CNT           180
-#define AIL_BRA_INDEX         181
-#define AIL_CON_VAL           182
-#define AIL_SET_CON_VAL       183
-#define AIL_CHAN_NOTES        185
-#define AIL_SEND_CV_MSG       186
-#define AIL_SEND_SYSEX_MSG    187
-#define AIL_WRITE_DISP        188
-#define AIL_INSTALL_CB        189
-#define AIL_CANCEL_CB         190
-#define AIL_LOCK_CHAN         191
-#define AIL_MAP_SEQ_CHAN      192
-#define AIL_RELEASE_CHAN      193
-#define AIL_TRUE_SEQ_CHAN     194
-
-#define NUM_DRIVER_ENTRIES    40
-
-extern struct driver_entry driver_index[NUM_DRIVER_ENTRIES];
 
 extern int32_t sequence_count;
 extern int32_t current_handle;
@@ -122,10 +76,7 @@ void xmidi32_branch_index(HSEQUENCE sequence, uint32_t marker);
 uint32_t xmidi32_get_beat_count(HSEQUENCE sequence);
 uint32_t xmidi32_get_bar_count(HSEQUENCE sequence);
 
-void xmidi32_send_channel_voice_message(uint32_t status, uint32_t data_1, uint32_t data_2);
-void xmidi32_send_sysex_message(uint32_t addr_a, uint32_t addr_b, uint32_t addr_c,
-                                void *data, uint32_t size, uint32_t delay);
-void xmidi32_write_display(const char *string);
+
 
 uint32_t xmidi32_lock_channel(void);
 void xmidi32_release_channel(uint32_t chan);
@@ -158,14 +109,11 @@ uint32_t xmidi32_detect_device(HDRIVER h, uint32_t IO, uint32_t IRQ, uint32_t DM
 
 void xmidi32_init_driver(HDRIVER h, uint32_t IO_ADDR, uint32_t IRQ,
                          uint32_t DMA, uint32_t DRQ);
-void xmidi32_describe_driver(void *desc);
 void xmidi32_shutdown_driver(HDRIVER h, const char *msg);
 
 uint8_t *find_seq(uint8_t *XMID, uint32_t seq_num);
 void rewind_seq(HSEQUENCE sequence);
 void flush_channel_notes(uint32_t chan);
 void flush_note_queue(struct sequence_state *st);
-
-void *AIL_API_per_service(void *driver, uint32_t service);
 
 #endif
