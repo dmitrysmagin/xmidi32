@@ -1,5 +1,6 @@
 *.o
 *.exe
+*.dll
 xmi_play
 .build_tmp
 *.rsp
