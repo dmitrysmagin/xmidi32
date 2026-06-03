@@ -5,8 +5,6 @@
 #include "xmidi32_yamaha_tables.h"
 #include "xmidi32_utils.h"
 
-#if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262
-
 void xmi_backend_opl_write(uint16_t reg, uint8_t val);
 
 #define MAX_TIMBS     192
@@ -33,24 +31,18 @@ void xmi_backend_opl_write(uint16_t reg, uint8_t val);
 #define TV_EFFECT    2
 #define OPL3_INST    3
 
-#if SYNTH_TYPE == YMF262
 #define NUM_4OP_VOICES  6
 #define NUM_VOICES_MAX  18
-#else
-#define NUM_VOICES_MAX  9
-#endif
 
 #define NUM_SLOTS_MAX  20
 
 #define MAX_REC_CHAN_MAX  10
 #define MIN_TRUE_CHAN_MAX 2
 
-#if SYNTH_TYPE == YMF262
 #define R_PAN_THRESH  27
 #define L_PAN_THRESH  100
 #define LEFT_MASK     0xEF
 #define RIGHT_MASK    0xDF
-#endif
 
 #ifndef VEL_SENS
 #define VEL_SENS  1
@@ -111,9 +103,7 @@ static uint16_t TV_accum;
 static uint16_t pri_accum;
 static uint8_t  vol_update;
 static int32_t  rover_2op;
-#if SYNTH_TYPE == YMF262
 static int32_t  rover_4op;
-#endif
 uint8_t conn_shadow;
 
 static uint8_t  S_timbre_off_l[NUM_SLOTS_MAX];
@@ -151,7 +141,6 @@ static uint16_t S_p_val[NUM_SLOTS_MAX];
 static uint16_t S_v1_val[NUM_SLOTS_MAX];
 static uint16_t S_v0_val[NUM_SLOTS_MAX];
 
-#if SYNTH_TYPE == YMF262
 static uint8_t  S_KSLTL_2[NUM_SLOTS_MAX];
 static uint8_t  S_KSLTL_3[NUM_SLOTS_MAX];
 static uint8_t  S_AVEKM_2[NUM_SLOTS_MAX];
@@ -166,7 +155,6 @@ static uint16_t S_m3_val[NUM_SLOTS_MAX];
 static uint16_t S_m2_val[NUM_SLOTS_MAX];
 static uint16_t S_v3_val[NUM_SLOTS_MAX];
 static uint16_t S_v2_val[NUM_SLOTS_MAX];
-#endif
 
 static uint8_t  MIDI_vol[NUM_CHANS_MAX];
 static uint8_t  MIDI_pan[NUM_CHANS_MAX];
@@ -184,17 +172,13 @@ static uint8_t  MIDI_voices[NUM_CHANS_MAX];
 static int8_t   V_channel[NUM_VOICES_MAX];
 static uint16_t S_V_priority[NUM_SLOTS_MAX];
 
-#if SYNTH_TYPE == YMF262
 static const uint8_t alt_op_0[18] = { 6, 7, 8, 12,13,14, 0xFF,0xFF,0xFF, 24,25,26,30,31,32,0xFF,0xFF,0xFF };
 static const uint8_t alt_op_1[18] = { 9,10,11, 15,16,17, 0xFF,0xFF,0xFF, 27,28,29,33,34,35,0xFF,0xFF,0xFF };
 static const uint8_t conn_sel[18] = { 1, 2, 4, 1, 2, 4, 0, 0, 0, 8,16,32, 8,16,32, 0, 0, 0 };
 static const uint8_t op4_voice[6]  = { 0, 1, 2, 9,10,11 };
-#endif
 
-#if SYNTH_TYPE == YMF262
 static const uint8_t carrier_01_data[18] = { 0,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 static const uint8_t carrier_23_data[18] = { 2,2,2,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2 };
-#endif
 
 static void update_reg(uint8_t oper, uint8_t base, uint8_t val) {
     uint8_t bh = op_array[oper];
@@ -380,11 +364,9 @@ static void release_voice(int32_t slot) {
     MIDI_voices[ch]--;
     int32_t v = S_voice[slot];
 
-#if SYNTH_TYPE == YMF262
     if (S_type[slot] == OPL3_INST) {
         V_channel[v + 3] = -1;
     }
-#endif
     V_channel[v] = -1;
     S_voice[slot] = -1;
 
@@ -398,7 +380,6 @@ static void release_voice(int32_t slot) {
 static void update_priority(void);
 
 static void assign_voice(int32_t slot) {
-#if SYNTH_TYPE == YMF262
     if (S_type[slot] == OPL3_INST) {
         int32_t dx = rover_4op;
         int32_t v;
@@ -421,7 +402,6 @@ static void assign_voice(int32_t slot) {
         update_priority();
         return;
     }
-#endif
 
     int32_t dx = rover_2op;
     int32_t v;
@@ -442,9 +422,7 @@ static void assign_voice(int32_t slot) {
 }
 
 static void BNK_phase(int32_t slot);
-#if SYNTH_TYPE == YMF262
 static void OPL_phase(int32_t slot);
-#endif
 
 static void BNK_phase(int32_t slot) {
     uint32_t off = ((uint32_t)S_timbre_off_h[slot] << 8) | S_timbre_off_l[slot];
@@ -487,7 +465,6 @@ static void BNK_phase(int32_t slot) {
     S_update[slot] = U_ALL_REGS;
 }
 
-#if SYNTH_TYPE == YMF262
 static void OPL_phase(int32_t slot) {
     BNK_phase(slot);
 
@@ -527,7 +504,6 @@ static void OPL_phase(int32_t slot) {
 
     S_ws_val_2[slot] = ((uint16_t)tptr[24] << 8) | tptr[18];
 }
-#endif
 
 static void update_voice(int32_t slot) {
     if (S_voice[slot] < 0) return;
@@ -546,7 +522,6 @@ static void update_voice(int32_t slot) {
     int32_t arr = 0;
     if (S_type[slot] == OPL3_INST) arr = 1;
 
-#if SYNTH_TYPE == YMF262
     int32_t vi = S_voice[slot];
     uint8_t conn = conn_sel[vi];
     uint8_t cur_shadow = conn_shadow;
@@ -563,24 +538,16 @@ static void update_voice(int32_t slot) {
             write_reg(0x04, 1, ncs);
         }
     }
-#endif
 
     do {
         int32_t vi = S_voice[slot];
-#if SYNTH_TYPE == YMF262
         uint8_t op_a = arr ? alt_op_0[vi] : op_0[vi];
         uint8_t op_b = arr ? alt_op_1[vi] : op_1[vi];
-#else
-        (void)vi;
-        uint8_t op_a = op_0[vi];
-        uint8_t op_b = op_1[vi];
-#endif
 
         if (S_update[slot] & U_AVEKM) {
             int32_t ch = S_channel[slot] & 0x0F;
             uint8_t am_vib = (MIDI_mod[ch] >= 64) ? 0x40 : 0x00;
 
-#if SYNTH_TYPE == YMF262
             if (arr) {
                 uint8_t m2 = S_m2_val[slot];
                 uint8_t r2 = (uint8_t)(((m2 >> 4) & 0x0F) | am_vib | S_AVEKM_2[slot]);
@@ -589,9 +556,7 @@ static void update_voice(int32_t slot) {
                 uint8_t m3 = S_m3_val[slot];
                 uint8_t r3 = (uint8_t)(((m3 >> 4) & 0x0F) | am_vib | S_AVEKM_3[slot]);
                 update_reg(op_b, 0x20, r3);
-            } else
-#endif
-            {
+            } else {
                 uint8_t m0 = S_m0_val[slot];
                 uint8_t reg0 = (uint8_t)(((m0 >> 4) & 0x0F) | am_vib | S_AVEKM_0[slot]);
                 update_reg(op_a, 0x20, reg0);
@@ -603,7 +568,6 @@ static void update_voice(int32_t slot) {
         }
 
         if (S_update[slot] & U_KSLTL) {
-#if SYNTH_TYPE == YMF262
             if (arr) {
                 uint8_t v2_lev = (uint8_t)((S_v2_val[slot] >> 2) & 0x3F);
                 if (S_scale_23[slot] & 1) {
@@ -618,9 +582,7 @@ static void update_voice(int32_t slot) {
                 }
                 uint8_t att3 = (uint8_t)(~(v3_lev) & 0x3F);
                 update_reg(op_b, 0x40, (uint8_t)(att3 | S_KSLTL_3[slot]));
-            } else
-#endif
-            {
+            } else {
                 uint8_t v0_lev = (uint8_t)((S_v0_val[slot] >> 2) & 0x3F);
                 if (S_scale_01[slot] & 1) {
                     v0_lev = (uint8_t)((((uint32_t)v0_lev * vol)) / 127);
@@ -638,15 +600,12 @@ static void update_voice(int32_t slot) {
         }
 
         if (S_update[slot] & U_ADSR) {
-#if SYNTH_TYPE == YMF262
             if (arr) {
                 update_reg(op_a, 0x60, S_AD_2[slot]);
                 update_reg(op_b, 0x60, S_AD_3[slot]);
                 update_reg(op_a, 0x80, S_SR_2[slot]);
                 update_reg(op_b, 0x80, S_SR_3[slot]);
-            } else
-#endif
-            {
+            } else {
                 update_reg(op_a, 0x60, S_AD_0[slot]);
                 update_reg(op_b, 0x60, S_AD_1[slot]);
                 update_reg(op_a, 0x80, S_SR_0[slot]);
@@ -655,15 +614,12 @@ static void update_voice(int32_t slot) {
         }
 
         if (S_update[slot] & U_WS) {
-#if SYNTH_TYPE == YMF262
             if (arr) {
                 uint8_t ws_lo = (uint8_t)(S_ws_val_2[slot] & 0xFF);
                 uint8_t ws_hi = (uint8_t)(S_ws_val_2[slot] >> 8);
                 update_reg(op_a, 0xE0, ws_lo);
                 update_reg(op_b, 0xE0, ws_hi);
-            } else
-#endif
-            {
+            } else {
                 uint8_t ws_lo = (uint8_t)(S_ws_val[slot] & 0xFF);
                 uint8_t ws_hi = (uint8_t)(S_ws_val[slot] >> 8);
                 update_reg(op_a, 0xE0, ws_lo);
@@ -673,19 +629,16 @@ static void update_voice(int32_t slot) {
 
         if (S_update[slot] & U_FBC) {
             int32_t fbc = (uint8_t)(((S_FBC[slot] & 1) | 0x30 | ((S_fb_val[slot] >> 3) & 0x0E)) & 0xFF);
-#if SYNTH_TYPE == YMF262
             uint8_t pan = MIDI_pan[S_channel[slot] & 0x0F];
             if (pan <= R_PAN_THRESH) {
                 fbc &= RIGHT_MASK;
             } else if (pan >= L_PAN_THRESH) {
                 fbc &= LEFT_MASK;
             }
-#endif
             send_byte((uint8_t)(arr ? (vi + 3) : vi), 0xC0, fbc);
         }
 
         if (S_update[slot] & U_FREQ) {
-#if SYNTH_TYPE == YMF262
             if (arr) {
                 if (!(S_BLOCK[slot] & 0x20)) {
                     uint8_t kb = (uint8_t)(S_KBF_shadow[slot] & 0xDF);
@@ -724,9 +677,7 @@ static void update_voice(int32_t slot) {
                     send_byte((uint8_t)(vi + 3), 0xA0, fnum_lo);
                     send_byte((uint8_t)(vi + 3), 0xB0, S_KBF_shadow[slot]);
                 }
-            } else
-#endif
-            {
+            } else {
                 if (!(S_BLOCK[slot] & 0x20)) {
                     uint8_t kb = (uint8_t)(S_KBF_shadow[slot] & 0xDF);
                     send_byte((uint8_t)vi, 0xB0, kb);
@@ -788,10 +739,8 @@ static void update_priority(void) {
     int32_t high_unvoiced = -1;
     int32_t low_voiced = -1;
     uint32_t low_voiced_pri = 0xFFFF;
-#if SYNTH_TYPE == YMF262
     int32_t low_4op = -1;
     uint32_t low_4op_pri = 0xFFFF;
-#endif
 
     for (si = 0; si < (int32_t)NUM_SLOTS_MAX; si++) {
         if (S_status[si] == SLOT_FREE) continue;
@@ -803,12 +752,10 @@ static void update_priority(void) {
                 high_unvoiced = si;
             }
         } else {
-#if SYNTH_TYPE == YMF262
             if (op4_base[vi] && pri < low_4op_pri) {
                 low_4op_pri = pri;
                 low_4op = si;
             }
-#endif
             if (pri < low_voiced_pri) {
                 low_voiced_pri = pri;
                 low_voiced = si;
@@ -819,7 +766,6 @@ static void update_priority(void) {
     if (high_unvoiced < 0 || low_voiced < 0) return;
 
     int32_t victim = low_voiced;
-#if SYNTH_TYPE == YMF262
     int32_t new_slot = high_unvoiced;
     if (S_type[new_slot] == OPL3_INST) {
         victim = low_4op;
@@ -836,7 +782,6 @@ static void update_priority(void) {
             }
         }
     }
-#endif
 
     int32_t old_v = S_voice[victim];
     release_voice(victim);
@@ -846,11 +791,9 @@ static void update_priority(void) {
     int32_t ch = S_channel[new_vi] & 0x0F;
     MIDI_voices[ch]++;
     V_channel[old_v] = (int8_t)ch;
-#if SYNTH_TYPE == YMF262
     if (S_type[new_vi] == OPL3_INST) {
         V_channel[old_v + 3] = (int8_t)ch;
     }
-#endif
     S_update[new_vi] = U_ALL_REGS;
     update_voice(new_vi);
 }
@@ -922,11 +865,7 @@ void yamaha_note_on(uint32_t chan, uint32_t note, uint32_t vel) {
     S_sustain[slot] = 0;
 
     if (tsize == 25) {
-#if SYNTH_TYPE == YMF262
         OPL_phase(slot);
-#else
-        BNK_phase(slot);
-#endif
     } else {
         BNK_phase(slot);
     }
@@ -1120,22 +1059,18 @@ uint32_t detect_device(uint32_t IO, uint32_t IRQ, uint32_t DMA, uint32_t DRQ) {
 }
 
 void reset_synth(void) {
-#if SYNTH_TYPE == YMF262
     write_reg(0x05, 1, 0x01);
     write_reg(0x04, 1, 0x00);
     conn_shadow = 0;
-#endif
 
     uint8_t bx;
     for (bx = 1; bx <= 0xF5; bx++) {
         write_reg(bx, 0, array0_init[bx - 1]);
     }
 
-#if SYNTH_TYPE == YMF262
     for (bx = 1; bx <= 0xF5; bx++) {
         write_reg(bx, 1, array1_init[bx - 1]);
     }
-#endif
 }
 
 void init_synth(void) {
@@ -1163,15 +1098,11 @@ void init_synth(void) {
     pri_accum = 0;
     vol_update = 0;
     rover_2op = -1;
-#if SYNTH_TYPE == YMF262
     rover_4op = -1;
-#endif
 }
 
 void shutdown_synth(void) {
-#if SYNTH_TYPE == YMF262
     write_reg(0x05, 1, 0x00);
-#endif
 }
 
 void serve_synth(void) {
@@ -1180,5 +1111,3 @@ void serve_synth(void) {
 void reset_interface(void) {}
 void init_interface(void) {}
 void sysex_wait(uint32_t ms) { (void)ms; }
-
-#endif

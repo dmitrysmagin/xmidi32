@@ -1,6 +1,6 @@
 WTEMP   := $(shell cygpath -w /tmp 2>/dev/null)
 
-CFLAGS  = -O2 -DSYNTH_TYPE=YMF262 -I src $(shell pkg-config --cflags sdl2)
+CFLAGS  = -O2 -I src $(shell pkg-config --cflags sdl2)
 LIBS    = $(shell pkg-config --libs sdl2)
 SRCS    = src/xmi_play.c src/backend.c src/opl3.c src/xmidi32_api.c src/xmidi32_channel.c src/xmidi32_control.c \
           src/xmidi32_count.c src/xmidi32_find_seq.c src/xmidi32_flush.c src/xmidi32_globals.c src/xmidi32_init.c \

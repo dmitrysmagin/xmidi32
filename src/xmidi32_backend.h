@@ -5,25 +5,8 @@
 
 #define XMI_EMULATION 1
 
-#define YM3812  1
-#define YMF262  2
-#define ROLAND  3
-#define SPKR    4
-
-#ifndef SYNTH_TYPE
-#define SYNTH_TYPE YMF262
-#endif
-
-#if SYNTH_TYPE == YM3812 || SYNTH_TYPE == YMF262
-#define NUM_VOICES  (SYNTH_TYPE == YMF262 ? 18 : 9)
-#define NUM_SLOTS   (SYNTH_TYPE == YMF262 ? 20 : 16)
-#elif SYNTH_TYPE == ROLAND
-#define NUM_VOICES  9
-#define NUM_SLOTS   64
-#elif SYNTH_TYPE == SPKR
-#define NUM_VOICES  3
-#define NUM_SLOTS   4
-#endif
+#define NUM_VOICES  18
+#define NUM_SLOTS   20
 
 #define SLOT_FREE   0
 #define SLOT_KEYON  1
