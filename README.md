@@ -146,69 +146,161 @@ dump_wav.c       — WAV dump utility
 sdltest.c        — SDL audio test tool
 ```
 
-## Verification Results
+## Build & Run
 
-### Step 1: ASM → C Mapping (Complete)
+### Build
 
-Every `PROC` in the original ASM files is mapped to a C function in `src/`. Details are in the tables above. Every struct (`state_table`, `ctrl_log`, `BNK`, `OPL3BNK`), every constant (`AIL32.INC` equates, controller numbers, API indices), and every global variable has a C equivalent.
+```
+make
+```
 
-### Step 2: Public Entry Points Verified
+Builds `xmi_play.exe` on Windows (MSYS2/MinGW), `xmi_play` on Linux/macOS. Requires SDL2 (`pkg-config`).
 
-The `driver_index` dispatch table in `XMIDI32.ASM` lists 33 service entries (AIL_DESC_DRVR through AIL_T_STATUS). All 33 have C counterparts in `xmidi32_dispatch.c`:
+### Run
 
-| AIL Service | ASM Entry | C Function | File |
-|---|---|---|---|
-| 100 (AIL_DESC_DRVR) | `describe_driver` | `xmidi32_describe_driver` | `xmidi32_dispatch.c` |
-| 101 (AIL_DET_DEV) | `detect_device` | `xmidi32_detect_device` | `xmidi32_timbre.c` |
-| 102 (AIL_INIT_DRVR) | `init_driver` | `xmidi32_init_driver` | `xmidi32_init.c` |
-| 103 (AIL_SERVE_DRVR) | `serve_driver` | `xmidi32_serve_driver` | `xmidi32_serve.c` |
-| 104 (AIL_SHUTDOWN_DRVR) | `shutdown_driver` | `xmidi32_shutdown_driver` | `xmidi32_dispatch.c` |
-| 150 (AIL_STATE_TAB_SIZE) | `get_state_size` | `xmidi32_get_state_size` | `xmidi32_api.c` |
-| 151 (AIL_REG_SEQ) | `register_seq` | `xmidi32_register_seq` | `xmidi32_register.c` |
-| 152 (AIL_REL_SEQ_HND) | `release_seq` | `xmidi32_release_seq` | `xmidi32_api.c` |
-| 153 (AIL_T_CACHE_SIZE) | `get_cache_size` | `xmidi32_get_timbre_cache_size` | `xmidi32_timbre.c` |
-| 154 (AIL_DEFINE_T_CACHE) | `define_cache` | `xmidi32_define_timbre_cache` | `xmidi32_timbre.c` |
-| 155 (AIL_T_REQ) | `get_request` | `xmidi32_timbre_request` | `xmidi32_timbre.c` |
-| 156 (AIL_INSTALL_T) | `install_timbre` | `xmidi32_install_timbre` | `xmidi32_timbre.c` |
-| 157 (AIL_PROTECT_T) | `protect_timbre` | `xmidi32_protect_timbre` | `xmidi32_timbre.c` |
-| 158 (AIL_UNPROTECT_T) | `unprotect_timbre` | `xmidi32_unprotect_timbre` | `xmidi32_timbre.c` |
-| 159 (AIL_T_STATUS) | `timbre_status` | `xmidi32_timbre_status` | `xmidi32_timbre.c` |
-| 170 (AIL_START_SEQ) | `start_seq` | `xmidi32_start_seq` | `xmidi32_api.c` |
-| 171 (AIL_STOP_SEQ) | `stop_seq` | `xmidi32_stop_seq` | `xmidi32_api.c` |
-| 173 (AIL_RESUME_SEQ) | `resume_seq` | `xmidi32_resume_seq` | `xmidi32_api.c` |
-| 174 (AIL_SEQ_STAT) | `get_seq_status` | `xmidi32_get_seq_status` | `xmidi32_api.c` |
-| 175 (AIL_REL_VOL) | `get_rel_volume` | `xmidi32_get_rel_volume` | `xmidi32_tempo.c` |
-| 176 (AIL_REL_TEMPO) | `get_rel_tempo` | `xmidi32_get_rel_tempo` | `xmidi32_tempo.c` |
-| 177 (AIL_SET_REL_VOL) | `set_rel_volume` | `xmidi32_set_rel_volume` | `xmidi32_tempo.c` |
-| 178 (AIL_SET_REL_TEMPO) | `set_rel_tempo` | `xmidi32_set_rel_tempo` | `xmidi32_tempo.c` |
-| 179 (AIL_BEAT_CNT) | `get_beat_count` | `xmidi32_get_beat_count` | `xmidi32_count.c` |
-| 180 (AIL_BAR_CNT) | `get_bar_count` | `xmidi32_get_bar_count` | `xmidi32_count.c` |
-| 181 (AIL_BRA_INDEX) | `branch_index` | `xmidi32_branch_index` | `xmidi32_tempo.c` |
-| 182 (AIL_CON_VAL) | `get_control_val` | `xmidi32_get_control_val` | `xmidi32_tempo.c` |
-| 183 (AIL_SET_CON_VAL) | `set_control_val` | `xmidi32_set_control_val` | `xmidi32_tempo.c` |
-| 185 (AIL_CHAN_NOTES) | `get_chan_notes` | `xmidi32_get_chan_notes` | `xmidi32_tempo.c` |
-| 186 (AIL_SEND_CV_MSG) | `send_cv_msg` | `xmidi32_send_channel_voice_message` | `xmidi32_dispatch.c` |
-| 187 (AIL_SEND_SYSEX_MSG) | `send_sysex_msg` | `xmidi32_send_sysex_message` | `xmidi32_dispatch.c` |
-| 188 (AIL_WRITE_DISP) | `write_display` | `xmidi32_write_display` | `xmidi32_dispatch.c` |
-| 189 (AIL_INSTALL_CB) | `install_callback` | `xmidi32_install_callback` | `xmidi32_api.c` |
-| 190 (AIL_CANCEL_CB) | `cancel_callback` | `xmidi32_cancel_callback` | `xmidi32_api.c` |
-| 191 (AIL_LOCK_CHAN) | `lock_channel` | `xmidi32_lock_channel` | `xmidi32_channel.c` |
-| 192 (AIL_MAP_SEQ_CHAN) | `map_seq_channel` | `xmidi32_map_seq_channel` | `xmidi32_tempo.c` |
-| 193 (AIL_RELEASE_CHAN) | `release_channel` | `xmidi32_release_channel` | `xmidi32_channel.c` |
-| 194 (AIL_TRUE_SEQ_CHAN) | `true_seq_channel` | `xmidi32_true_seq_channel` | `xmidi32_tempo.c` |
+```
+xmi_play <file.xmi> [sequence_num] [bank_file]          Play via SDL audio
+xmi_play --wav <file.xmi> [sequence_num] [bank_file]    Render to WAV
+```
 
-### Step 3: Missing Functionality Still Only in ASM
+- `sequence_num`: track index (default 0, shown on start)
+- `bank_file`: `.opl`/`.ad` (GTL format) or `.bnk` (standard AdLib BNK1)
 
-The core XMIDI interpreter (`XMIDI32.ASM`) and Yamaha OPL2/OPL3 driver (`YAMAHA32.INC`) are fully ported to C. The following sub-drivers from the original ASM project remain **unported** (still only in ASM):
+### Features
 
-| File | Lines | Description | C Equivalent |
-|---|---|---|---|
-| `MT3232.INC` | 955 | Roland MT-32/LAPC-1 synthesizer driver | None |
-| `SPKR32.INC` | 1084 | IBM PC/Tandy 3-voice internal speaker driver | None |
-| `MPU40132.INC` | 151 | Roland MPU-401 UART MIDI interface | None |
-| `SBMIDI32.INC` | 187 | Sound Blaster direct MIDI interface | None |
+- SDL playback via `sdl_audio_callback()` matching WAV dumper logic
+- `--wav` mode renders XMIDI to `.wav` file (bypasses SDL, same serve/generate core)
+- Single-track playback (plays only selected track; defaults to 0)
+- Loop detection: scans EVNT for FOR_LOOP controller; WAV render stops after first loop
+- Zero compiler warnings in project code (`-Wall -Wextra` clean)
 
-These are conditionally included in `XMIDI32.ASM` via `IFDEF MT32`, `IFDEF SPKR`, etc. and define their own `set_IO_parms`, `detect_device`, `send_byte`, `read_status`, `detect_send`, `detect_Adlib` and other hardware-specific entry points. The Yamaha driver's `xmidi32_yamaha_stub.c` provides a compile-time placeholder for non-Yamaha backends.
+## Fixed Bugs
+
+### Byte-swapped IFF chunk tag constants
+`read_be32()` returns big-endian values, but all tag constants were written for little-endian direct memory loads (every constant was reversed). **Files:** `src/xmidi32_find_seq.c`, `src/xmidi32_register.c`, `src/xmidi32_tempo.c`
+
+| Chunk | Wrong (LE) | Correct (BE) |
+|-------|-----------|--------------|
+| FORM  | `0x4D524F46` | `0x464F524D` |
+| XMID  | `0x44494D58` | `0x584D4944` |
+| TIMB  | `0x42494D54` | `0x54494D42` |
+| RBRN  | `0x4E524252` | `0x5242524E` |
+| EVNT  | `0x54454E56` | `0x45564E54` |
+
+### `find_seq` returned wrong pointer
+Original assembly returned pointer to **start of FORM chunk**. C port returned `p + 8` (FORM type field). `register.c` used `chunk + 12` expecting FORM-start pointer, causing wrong data offset. **Fix:** Changed `find_seq` to return `p` instead of `p + 8`.
+
+### `find_seq` didn't skip non-XMID FORM types
+DEMO.XMI starts with `FORM XDIR` (metadata), not `FORM XMID`. The function returned the XDIR form, finding no TIMB/EVNT sub-chunks. **Fix:** Added type check — skip FORM unless type == "XMID".
+
+### Missing `XMI_EMULATION` in src files
+`XMI_EMULATION` was defined in `backend.h` (project root), but `src/xmidi32_yamaha.c` includes `xmidi32_backend.h`. Without the define, `update_reg()` used `outport()` (privileged `OUT` instruction on x86-64), crashing with SIGILL (0xC0000096). **Fix:** Added `#define XMI_EMULATION 1` to `src/xmidi32_backend.h`.
+
+### 1-based channel indexing
+`xmidi32_map_seq_channel()` takes 1-based channel numbers. `xmi_play.c` was passing 0-based `j`, causing `chan_map[-1]` → access violation (0xC0000005). **Fix:** Changed to `xmidi32_map_seq_channel(h, j + 1, j + 1)`.
+
+### Missing 0x80 Note Off handler
+Event dispatch in `xmidi32_serve.c` had no case for status 0x80 (Note Off). The byte was never consumed, locking the sequencer. **Fix:** Added case for 0x80 calling `xmidi32_note_off()` and advancing past the two data bytes.
+
+### Velocity 0 note-on as note-off
+MIDI convention: a Note On with velocity=0 should act as a Note Off. The original port treated all Note On events as note starts. **Fix:** In `xmidi32_note_on.c`, if velocity is 0, call `xmidi32_note_off()` instead.
+
+### Meta event length 2 bytes too short
+`total_len` in `xmidi32_meta.c` only counted the length byte and data, omitting the FF status byte and type byte. `EVNT_ptr` jumped into meta data instead of past it. **Fix:** Changed `total_len` to `1 + 1 + length` (FF + type + data).
+
+### Interval counting skipped when notes active
+Original assembly's `__end_queue` always decrements `interval_cnt` and falls through to `__do_events` when <= 0. The C port's else branch (notes still active) skipped the decrement, causing events to be consumed immediately. **Fix:** Removed `if (note_count == 0)` guard — interval is always decremented.
+
+### Tempo DDA compared against wrong value
+The original assembly compares `tempo_err` against hardcoded 100 and subtracts 100. The C port used `tempo_percent` (a variable), causing erratic timing with non-100 tempo. **Fix:** Changed `tempo_err >= tempo_percent` / subtract `tempo_percent` to `>= 100` / subtract `100`.
+
+### serve_driver `tempo_percent` re-add on loopback
+When `tempo_error >= 100` after gradient processing (tempo_percent > 100%), `goto rep_interval` re-enters the tick loop. ASM does NOT re-add `tempo_percent` at that point; C was re-adding it, causing runaway ticks that consumed all events instantly. **Fix:** Removed `tempo_percent` re-add on `goto rep_interval`.
+
+### `interval_cnt` unsigned wrap never fired interval-0 events
+`interval_cnt` is `uint16_t`. ASM uses `dec [val]; jle` (signed), so 0→0xFFFF wraps to signed -1 and fires events. C's `uint16_t` wrap (0→65535) never matched `<= 0`. **Fix:** Cast `interval_cnt` to `(int16_t)` before the `<= 0` check.
+
+### Pitch bend centering wrong by 2 bits
+MIDI pitch bend 14-bit value was shifted left by 2 extra bits (`<<9` + `<<2`), but center was subtracted as `0x2000` instead of `0x8000` (`0x2000 << 2`). Caused pitch to jump up by ~half a semitone at center position. **Fix:** `((pitch_h<<7|pitch_l)-0x2000)>>5*range` matching ASM's `sub ax,2000h; imul range; sar ax,5`.
+
+### Frequency computation: 3 algorithmic mismatches from ASM
+1. Note normalization: `note - 12` (ASM net effect `sub 24; add 12; add 12; sub 12` = -12), was -24.
+2. Note+pb combination: ASM adds MIDI note to AH of pb word, equivalent to `(note*256+pb+8)>>4-192`, was `(note<<4)+8+pb-192`.
+3. Table indexing: byte offset `(htone<<5)+((val<<1)&31)` then `>>1` loses bit 0 of fine nibble; was `((htone<<5)|(val&0x0F))>>1` which didn't drop it.
+
+**Fix:** Rewrote frequency computation to match ASM byte-for-byte; verified via Python simulation (26/27 test cases match at center, +2, -2 semitones across C0-C8).
+
+### NEXT_LOOP off-by-one
+ASM decrements counter **first**, then checks `jnz` (jump if not zero). C checks for zero **first**, then decrements. Result: counter `val` gives `val+1` iterations instead of `val`. **Fix:** decrement first, then check, and only jump back if still > 0.
+
+### INDIRECT_C_PFX uses index as value
+ASM stores an **index** into `chan_indirect[]`, then on the next controller call looks up `ctrl_ptr[index]` for the actual value. C uses the stored index **directly as the value**, bypassing the `ctrl_ptr` indirection. **Fix:** `val = st->ctrl_ptr[(uint8_t)st->chan_indirect[log_chan]];`
+
+### global_controls.PV written for ALL controllers
+ASM writes to the hash-offsetted field (`PV`, `MODUL`, `PAN`, etc.) based on which controller triggered. C always writes to `global_controls.PV[log_chan]`. **Fix:** use `GCTL(log_chan, hash)` or equivalent byte-offset write.
+
+### Gradient accumulators store wrong value
+ASM stores the **remainder** after subtracting `steps * period`. C stores the **full initial value** (`tempo_grad` / `vol_grad`). **Fix:** store `tempo_rem` / `vol_rem` instead.
+
+### Gradient accumulators not updated when steps==0
+ASM always updates accum. C only updates inside `if (steps != 0)`. **Fix:** move accum update outside the `if`.
+
+### Volume gradient `> 0` instead of `>= period`
+ASM uses `jge` (signed `>= 0`) after `sub eax,period`, which is `>= period` in C. C uses `> 0`. When `vol_rem` is between 1 and `period-1`, ASM does 0 steps (correct), C does 1 step (wrong). **Fix:** change `while (vol_rem > 0)` to `while (vol_rem >= st->vol_period)`.
+
+### Timbre reinstall bug
+`do_install_timbre` re-checked `index_timbre` and returned early if found, failing to assign a new cache slot. **Fix:** remove early return and always allocate a new slot.
+
+### `xmidi32_timbre_request()` endianness
+Three endianness bugs: reversed TIMB constant, reversed count bytes, and wrong bounds comparison in `request_next`. **Fix:** all three fixed.
+
+### Missing silent timbre for missing patches
+When a timbre is not in any bank, the driver would spin forever in `install_sequence_timbres`. **Fix:** install a silent dummy 2-op instrument.
+
+### Missing timbre protect handler
+ASM handles controller 113 to protect/unprotect individual timbres. C port had no equivalent. **Fix:** added `case TIMBRE_PROTECT:` in `yamaha_controller()`.
+
+### Missing reset-all-controllers handler
+ASM resets modulation, expression, sustain, pitch bend and flags voice params. C port missing. **Fix:** added `case RESET_ALL_CTRLS:` in `yamaha_controller()`.
+
+### Panning investigation — resolved
+OPL3 bit 4 = LEFT output, bit 5 = RIGHT output. C masks `LEFT_MASK=0xEF`, `RIGHT_MASK=0xDF` match ASM ELSE/default case. Dedicated `pan_test2.c` confirmed routing end-to-end. Early-sample R>L imbalance in AGU16.XMI was noise floor, not a logic swap.
+
+## Audit — Remaining Open Items
+
+- [ ] **XMIDI controller numbers differ from AIL spec** (`src/xmidi32_config.h`):
+  `CHAN_LOCK=96` (was 110), `FOR_LOOP=100` (was 116), `CALLBACK_TRIG=110` (was 119), `PATCH_BANK_SEL=0` (was 114), etc. The C port **renumbered all extended XMIDI controllers**.
+- [ ] **Channel range expansion** (2-10 → 1-16): Intentional change for OPL3/16-channel MIDI support.
+- [ ] **Note queue: struct vs parallel arrays**: C uses `struct note_entry {chan, num, time}` with 4-byte padding vs ASM's tightly packed arrays. 256 bytes vs 192 bytes. Functionally equivalent.
+
+### Verified Correct
+
+- All 33+ API entries in the dispatch table match the ASM `driver_index`
+- `yamaha_note_on` slot allocation and LRU eviction logic matches
+- `update_voice` register write logic matches (WS fix applied)
+- `BNK_phase` / `OPL3BNK_phase` timbre data extraction matches at all byte offsets
+- `freq_table`, `note_octave`, `note_halftone`, `op_0`, `op_1`, `op4_base`, `conn_sel`, etc. match byte-for-byte
+- Volume scaling chain (`vol * expression * velocity → attenuation`) matches
+- Pitch bend calculation chain matches
+- All YAMAHA32.INC state arrays (`S_*`, `MIDI_*`, `V_channel`, `timb_*`) present in C
+- `register_seq` IFF chunk parsing matches
+- `init_driver` global state initialization matches (aside from channel range)
+- Instrument cache `delete_LRU` / `install_timbre` / `index_timbre` match
+- 4-op OPL3 voice assignment and release match
+- `update_voice` 4-op second iteration (operators 2/3) now writes all registers (WS/ADSR/KSLTL/FBC/AVEKM/FREQ)
+
+## Unported Sub-Drivers
+
+The core XMIDI interpreter and Yamaha OPL2/OPL3 driver are fully ported. The following sub-drivers remain **unported** (still only in ASM):
+
+| File | Lines | Description |
+|---|---|---|
+| `MT3232.INC` | 955 | Roland MT-32/LAPC-1 synthesizer driver |
+| `SPKR32.INC` | 1084 | IBM PC/Tandy 3-voice internal speaker driver |
+| `MPU40132.INC` | 151 | Roland MPU-401 UART MIDI interface |
+| `SBMIDI32.INC` | 187 | Sound Blaster direct MIDI interface |
+
+These are conditionally included via `IFDEF MT32`, `IFDEF SPKR`, etc. The Yamaha driver's `xmidi32_yamaha_stub.c` provides a compile-time placeholder for non-Yamaha backends.
 
 ## Key Porting Decisions
 
