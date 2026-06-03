@@ -649,7 +649,7 @@ static void update_voice(int32_t slot) {
                     pb >>= 5;
                     pb *= (int32_t)DEF_PITCH_RANGE;
 
-                    int32_t note = S_note[slot] + S_transpose[slot] - 12;
+                    int32_t note = S_note[slot] + S_transpose[slot];
                     while (note < 0) note += 12;
                     while (note >= 96) note -= 12;
 
@@ -687,7 +687,7 @@ static void update_voice(int32_t slot) {
                     pb >>= 5;
                     pb *= (int32_t)DEF_PITCH_RANGE;
 
-                    int32_t note = S_note[slot] + S_transpose[slot] - 12;
+                    int32_t note = S_note[slot] + S_transpose[slot];
                     while (note < 0) note += 12;
                     while (note >= 96) note -= 12;
 
