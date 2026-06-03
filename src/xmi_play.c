@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 #include <SDL.h>
 #include "backend.h"
 #include "sdl_audio.h"
@@ -13,7 +16,28 @@
 #define TIMBRE_CACHE_SIZE 12288
 #define WAV_MAX_SAMPLES   (44100 * 120)
 
-static volatile sig_atomic_t g_stop_requested = 0;
+static volatile int g_stop_requested = 0;
+
+#if defined(_WIN32)
+static BOOL WINAPI ctrl_handler(DWORD type) {
+    if (type == CTRL_C_EVENT || type == CTRL_BREAK_EVENT) {
+        g_stop_requested = 1;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int any_key_pressed(void) {
+    int vk;
+    for (vk = 1; vk < 256; vk++) {
+        if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == VK_MBUTTON) continue;
+        if (vk == VK_SHIFT || vk == VK_CONTROL || vk == VK_MENU) continue;
+        if (vk == VK_CAPITAL || vk == VK_NUMLOCK || vk == VK_SCROLL) continue;
+        if (GetAsyncKeyState(vk) & 0x8000) return 1;
+    }
+    return 0;
+}
+#endif
 
 struct xmi_context {
     uint8_t *data;
@@ -256,15 +280,20 @@ static int play_sdl(struct xmi_context *ctx) {
         return -1;
     }
 
+#if defined(_WIN32)
+    SetConsoleCtrlHandler(ctrl_handler, TRUE);
+#else
     signal(SIGINT, sigint_handler);
+#endif
 
     printf("Playing... Press any key to stop.\n");
+    SDL_PauseAudio(0);
+
     while (xmidi32_get_seq_status(ctx->h) == SEQ_PLAYING && !g_stop_requested) {
-        SDL_Event e;
-        while (SDL_PollEvent(&e))
-            if (e.type == SDL_QUIT || e.type == SDL_KEYDOWN)
-                g_stop_requested = 1;
-        SDL_Delay(8);
+#if defined(_WIN32)
+        if (any_key_pressed()) g_stop_requested = 1;
+#endif
+        SDL_Delay(50);
     }
 
     printf("Playback complete.\n");
